@@ -5,6 +5,10 @@
     "name": "T Z Pardi",
     "email": "tzpardi@streemio.org"
   },
+  "repository" :
+  { "type" : "git",
+    "url" : "https://github.com/streemio-org/streemiolib.git"
+  }
   "version": "1.0.1",
   "dependencies": {
     "async": "^1.5.2",
