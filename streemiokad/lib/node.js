@@ -39,7 +39,7 @@ var Message = require('./message');
 var Item = require('./item');
 var transports = require('./transports');
 var localstorage = require('./storages/localstorage');
-var wotmsg = require('../../../libs/message/wotmsg');
+var wotmsg = require('../../message/wotmsg');
 
 inherits(Node, events.EventEmitter);
 
