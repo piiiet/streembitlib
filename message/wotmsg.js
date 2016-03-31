@@ -75,7 +75,14 @@ var PEERMSG = {
     HCAL: 0xDB8,    //  Close call
     ACRQ: 0xDB9,    //  Add contact request
     AACR: 0xDBa,    //  Accept add contact request
-    DACR: 0xDBb     //  Deny add contact request
+    DACR: 0xDBb,    //  Deny add contact request
+    SSCA: 0xDBc,    //  Screen share call
+    RSSC: 0xDBd,    //  Reply screen share call
+    UTI1: 0xDBe,    //  Utility call 1 (Reserved for some currently uknown device or UI handling)
+    UTI2: 0xDBf,    //  Utility call 2 (Reserved for some currently uknown device or UI handling)
+    UTI3: 0xDC0,    //  Utility call 3 (Reserved for some currently uknown device or UI handling)
+    UTI4: 0xDC1,    //  Utility call 4 (Reserved for some currently uknown device or UI handling)
+    UTI5: 0xDC2     //  Utility call 5 (Reserved for some currently uknown device or UI handling)
 };
 
 

@@ -36,7 +36,9 @@ function AppEvents() {
         ONUSERINIT: "onUserInitialize",
         ONUSERPUBLISH: "onUserPublish",
         ONDATAPUBLISH: "onDataPublish",
-        ONCALLWEBRTCSIGNAL: "onCallWebrtcSignal",
+        ONCALLWEBRTCSIGNAL: "onCallWebrtcSignal",               //  For video/audio calls
+        ONCALLWEBRTC_SSCSIG: "onCallWebrtcSscSig",              //  For screeen share
+        ONCALLWEBRTC_SSAUDIOSIG: "onCallWebrtcSsAudioSig",      //  For screeen share audio call signals
         ONFILEWEBRTCSIGNAL: "onFileWebrtcSignal",
         ONVIDEOCONNECT: "onVideoConnect",
         ONTEXTMSG: "onTextMsg",
