@@ -69,20 +69,24 @@ var PEERMSG = {
     ACCK: 0xDB2,    //  Accept session symmetric key
     CALL: 0xDB3,    //  Video call
     CREP: 0xDB4,    //  Reply to video call
-    DEL: 0xDB5,     //  Delete message
+    MDEL: 0xDB5,    //  Delete message
     FILE: 0xDB6,    //  File transfer init
     FREP: 0xDB7,    //  Reply file transfer init
     HCAL: 0xDB8,    //  Close call
     ACRQ: 0xDB9,    //  Add contact request
-    AACR: 0xDBa,    //  Accept add contact request
-    DACR: 0xDBb,    //  Deny add contact request
-    SSCA: 0xDBc,    //  Screen share call
-    RSSC: 0xDBd,    //  Reply screen share call
-    UTI1: 0xDBe,    //  Utility call 1 (Reserved for some currently uknown device or UI handling)
-    UTI2: 0xDBf,    //  Utility call 2 (Reserved for some currently uknown device or UI handling)
-    UTI3: 0xDC0,    //  Utility call 3 (Reserved for some currently uknown device or UI handling)
-    UTI4: 0xDC1,    //  Utility call 4 (Reserved for some currently uknown device or UI handling)
-    UTI5: 0xDC2     //  Utility call 5 (Reserved for some currently uknown device or UI handling)
+    AACR: 0xDBA,    //  Accept add contact request
+    DACR: 0xDBB,    //  Deny add contact request
+    SSCA: 0xDBC,    //  Screen share call
+    RSSC: 0xDBD,    //  Reply screen share call
+    RESF: 0xDBE,    //  Resume send file 
+    ARES: 0xDBF,    //  Accept resume send file 
+    FSTA: 0xDC0,    //  File receive status
+    DATA: 0xDC1,    //  Send custom data message
+    UTI1: 0xDC2,    //  Utility call 1 (Reserved for some currently uknown device or UI handling)
+    UTI2: 0xDC3,    //  Utility call 2 (Reserved for some currently uknown device or UI handling)
+    UTI3: 0xDC4,    //  Utility call 3 (Reserved for some currently uknown device or UI handling)
+    UTI4: 0xDC5,    //  Utility call 4 (Reserved for some currently uknown device or UI handling)
+    UTI5: 0xDC6     //  Utility call 5 (Reserved for some currently uknown device or UI handling)
 };
 
 
