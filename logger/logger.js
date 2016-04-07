@@ -1,20 +1,20 @@
 ﻿/*
 
-This file is part of Streemio application. 
-Streemio is an open source project to create a real time communication system for humans and machines. 
+This file is part of Streembit application. 
+Streembit is an open source project to create a real time communication system for humans and machines. 
 
-Streemio is a free software: you can redistribute it and/or modify it under the terms of the GNU General Public License 
+Streembit is a free software: you can redistribute it and/or modify it under the terms of the GNU General Public License 
 as published by the Free Software Foundation, either version 3.0 of the License, or (at your option) any later version.
 
-Streemio is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of 
+Streembit is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of 
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with Streemio software.  
+You should have received a copy of the GNU General Public License along with Streembit software.  
 If not, see http://www.gnu.org/licenses/.
  
 -------------------------------------------------------------------------------------------------------------------------
 Author: Tibor Zsolt Pardi 
-Copyright (C) 2016 The Streemio software development team
+Copyright (C) 2016 The Streembit software development team
 -------------------------------------------------------------------------------------------------------------------------
 
 */
@@ -189,7 +189,7 @@ function init_log(loglevel, logdir, taskbar_infofn, callback) {
     // set the global logs path
     global.logspath = logspath;
     
-    var logfilePath = path.join(logspath, 'streemio.log');
+    var logfilePath = path.join(logspath, 'streembit.log');
     var exceptionFileLog = path.join(logspath, 'exception.log');
     
     var level = loglevel || "debug";
@@ -220,7 +220,7 @@ function init_log(loglevel, logdir, taskbar_infofn, callback) {
         }
         else {
             console.log("logs directory " + logspath + " exists");
-            var tmpfilename = "/streemio_" + Date.now() + ".log";
+            var tmpfilename = "/streembit_" + Date.now() + ".log";
             var newfile = path.join(logspath, tmpfilename);
             console.log("newfile: %s", newfile);
             fs.rename(logfilePath, newfile, function (err) {
@@ -233,7 +233,7 @@ function init_log(loglevel, logdir, taskbar_infofn, callback) {
                             return console.log("fs.rename error: %j", err);
                         }
                     }
-                    // continue if the streemio.log does not exists, that is not an error
+                    // continue if the streembit.log does not exists, that is not an error
                 }
 
                 if (!err) {

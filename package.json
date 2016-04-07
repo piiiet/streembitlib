@@ -1,13 +1,13 @@
 {
-  "name": "streemiolib",
-  "description": "Streemio libraries",
+  "name": "streembitlib",
+  "description": "Streembit libraries",
   "author": {
     "name": "T Z Pardi",
-    "email": "tzpardi@streemio.org"
+    "email": "tzpardi@streembit.com"
   },
   "repository" :
   { "type" : "git",
-    "url" : "https://github.com/streemio-org/streemiolib.git"
+    "url" : "https://github.com/streembit/streembitlib.git"
   },
   "version": "1.0.1",
   "dependencies": {

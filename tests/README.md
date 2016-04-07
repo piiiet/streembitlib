@@ -1,2 +1,2 @@
-# streemiolib tests
+# streembitlib tests
 
