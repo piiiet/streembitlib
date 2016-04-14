@@ -79,19 +79,22 @@ function Node(options) {
     }
     else {
         this._log.info('join PUBLIC network');
-    }
+    }    
     
-    this.contact_existsfn = null;
-    if (this._options.contact_exist_lookupfn) {
-        this.contact_existsfn = this._options.contact_exist_lookupfn;
+    this.list_of_contacts = 0;
+    this.contactonly = false;
+    if (this._options.contactonly) {
+        // check if the contact list exists
+        if (!this._options.list_of_contacts || 
+            !Array.isArray(this._options.list_of_contacts) || 
+            this._options.list_of_contacts.length == 0) {
+                throw new Error("in contactonly mode the list of contact is required")
+        }        
+        
+        this.list_of_contacts = this._options.list_of_contacts;
+        this.contactonly = true;        
     }
-    this._log.debug('contact_existsfn: ' + (this.contact_existsfn ? "defined" : "not defined"));
-    
-    this.is_gui_node = false;
-    if (this._options.is_gui_node) {
-        this.is_gui_node = true;
-    }
-    this._log.debug('is_gui_node: ' + (this.is_gui_node ? "defined" : "not defined"));
+    this._log.debug('contactonly: ' + (this.contactonly ? "defined" : "not defined"));
     
     if (this._options.onnetworkerror && typeof this._options.onnetworkerror == "function") {
         this.errorFn = this._options.onnetworkerror;
@@ -1278,8 +1281,6 @@ Node.prototype._handlePing = function (params, sockinfo) {
 };
 
 
-
-
 Node.prototype._handleStore = function (params) {
     var node = this;
     var item;
@@ -1317,38 +1318,39 @@ Node.prototype._handleStore = function (params) {
         }
     }
     
-    // check if this is a gui node. gui nodes updates only contact messages
-    if (this.is_gui_node) {
-        if (!is_update_key && !is_system_update_key) {
+    
+    // check if this is a contactonly node. contactonly nodes updates only their contact's account info
+    if (this.contactonly) {
+        if (!is_update_key) {
             // only store the contacts key and system update messages in the gui version
-            return node._log.debug("handleStore is_gui_node = true, no STORE perfomed");
-        }
-        
-        if (is_update_key) {
-            if (!this.contact_existsfn) {
-                return node._log.debug("handleStore cancelled, contact_existsfn not exists");
+            this._log.debug("handleStore contactonly = true, no STORE perfomed");
+            return this._ignoreValue(params);
+        }        
+
+        // check if the contact exists
+        try {
+            var account = params.key;
+            var iscontact = false;
+            for (var i = 0; i < this.list_of_contacts.length; i++) {
+                if (this.list_of_contacts[i] == account) {
+                    iscontact = true;
+                    break;
+                }
             }
+
+            if (!iscontact) {
+                this._log.debug("handleStore being ingnoring, " + account + " is not a contact");
+                return this._ignoreValue(params);
+            }
+
+            node._log.debug("contactonly node handleStore allowed for account: " + account );
             
-            // check if the contact exists
-            try {
-                var account = params.key;
-                var iscontact = this.contact_existsfn(account);
-                if (!iscontact) {
-                    return node._log.debug("handleStore cancelled, contact_existsfn for " + account + " returned false");
-                }
-                else {
-                    node._log.debug("handleStore contact_existsfn for " + account + " returned TRUE");
-                }
-            } 
-            catch (err) {
-                return this._log.error("handleStore contact_existsfn call error %j", err);
-            }
-        }
-        
-        if (is_system_update_key) {
-            // TODO
-        }
+        } 
+        catch (err) {
+            return this._log.error("handleStore contact_existsfn call error %j", err);
+        }        
     }
+
     
     try {
         // create the message item object
@@ -1506,6 +1508,27 @@ Node.prototype._storeValue = function (item, params, callback) {
     catch (e) {
         node.errorHandler(0x010b);
         node._log.error("_storeValue error: %j", e);
+    }
+};
+
+
+Node.prototype._ignoreValue = function (params) {
+    var node = this;
+    try {
+        var contact = this._rpc._createContact(params);
+        var message = new Message(
+        'STORE_REPLY', {
+            referenceID: params.rpcID,
+            success: true
+        }, 
+        this._self);
+            
+        this._rpc.send(contact, message);            
+
+    }
+    catch (e) {
+        node.errorHandler(0x010b);
+        node._log.error("_ignoreValue error: %j", e);
     }
 };
 
