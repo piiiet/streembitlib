@@ -76,6 +76,7 @@ Bucket.prototype.getContact = function(index) {
 */
 Bucket.prototype.addContact = function(contact) {
     assert(contact instanceof Contact, 'Invalid contact supplied');
+    assert(this.getSize() < constants.K, 'Bucket size cannot exceed K');
 
     if (!this.hasContact(contact.nodeID)) {
         var index = _.sortedIndex(this._contacts, contact, function(contact) {
