@@ -66,6 +66,7 @@ function log_error(err, param) {
             else {
                 msg = err;
             }
+
             logger.error(msg);
             return msg;
         }
@@ -84,36 +85,32 @@ function log_error(err, param) {
 
 function level_log(level, msg, val1, val2, val3, val4) {
     try {
+        if (!msg) {
+            return;
+        }
+
+        if (val1 != undefined && val2 != undefined && val3 != undefined && val4 != undefined) {
+            msg = util.format(msg, val1, val2, val3, val4);               
+        }
+        else if (val1 != undefined && val2 != undefined && val3 != undefined) {
+            msg = util.format(msg, val1, val2, val3);
+        }
+        else if (val1 != undefined && val2 != undefined) {
+            msg = util.format(msg, val1, val2);
+        }
+        else if (val1 != undefined) {
+            msg = util.format(msg, val1);
+        }
         
         if (!logger.log) {
             console.log(msg);
-            return;   
+        }
+        else {
+            logger.log(level, msg);
         }
 
-        if (msg) {
-            if (val1 != undefined && val2 != undefined && val3 != undefined && val4 != undefined) {
-                msg = util.format(msg, val1, val2, val3, val4);
-                logger.log(level, msg);
-            }
-            else if (val1 != undefined && val2 != undefined && val3 != undefined) {
-                msg = util.format(msg, val1, val2, val3);
-                logger.log(level, msg);
-            }
-            else if (val1 != undefined && val2 != undefined) {
-                msg = util.format(msg, val1, val2);
-                logger.log(level, msg);
-            }
-            else if (val1 != undefined) {
-                msg = util.format(msg, val1);
-                logger.log(level, msg);
-            }
-            else {
-                logger.log(level, msg);
-            }
-
-            if (logger.taskbar_info_proc && level == "info") {
-                logger.taskbar_info_proc(msg);
-            }
+        if (logger.taskbar_info_proc && level == "info") {
+            logger.taskbar_info_proc(msg);
         }
     }
     catch (e) {
@@ -131,7 +128,6 @@ function log_info(msg, val1, val2, val3, val4) {
 function log_debug(msg, val1, val2, val3, val4) {
     level_log("debug", msg, val1, val2, val3, val4);
 }
-
 
 
 function config_log(loglevel, logpath, excpath, taskbar_infofn) {
