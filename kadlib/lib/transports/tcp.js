@@ -109,7 +109,7 @@ TCPTransport.prototype._handleConnection = function(connection) {
         // noop
       }
 
-      self.receive(new Buffer(buffer));
+      self.receive(new Buffer(buffer), connection);
 
       buffer = '';
       opened = 0;

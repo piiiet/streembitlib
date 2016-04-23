@@ -24,7 +24,7 @@ function StreembitContact(options) {
     assert(typeof options === 'object', 'Invalid options were supplied');
     assert(typeof options.address === 'string', 'Invalid address was supplied');
     assert(typeof options.port === 'number', 'Invalid port was supplied');
-    //assert(typeof options.public_key === 'string', 'Invalid public key was supplied');
+    assert(typeof options.public_key === 'string', 'Invalid public key was supplied');
     //assert(typeof options.account === 'string', 'Invalid account name was supplied');
 
     this.address = options.address;

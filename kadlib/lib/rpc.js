@@ -150,7 +150,7 @@ RPC.prototype.send = function(contact, message, callback) {
  * Handle incoming messages
  * @param {Buffer} buffer - Raw binary data to be processed by the RPC handler
  */
-RPC.prototype.receive = function(buffer) {
+RPC.prototype.receive = function(buffer, socket) {
   var self = this, message, contact;
 
   function deserialize() {
@@ -181,7 +181,7 @@ RPC.prototype.receive = function(buffer) {
     }
 
     self._trigger('before:receive', [message, contact], function() {
-      self._execPendingCallback(message, contact);
+      self._execPendingCallback(message, contact, socket);
     });
   });
 };
@@ -271,7 +271,7 @@ RPC.prototype._createContact = function(options) {
  * @param {Message} message - Message to handle any callbacks for
  * @param {Contact} contact - Contact who sent the message
  */
-RPC.prototype._execPendingCallback = function(message, contact) {
+RPC.prototype._execPendingCallback = function(message, contact, socket) {
   var pendingCall = this._pendingCalls[message.id];
 
   this._log.debug('checking pending rpc callback stack for %s', message.id);
@@ -285,7 +285,7 @@ RPC.prototype._execPendingCallback = function(message, contact) {
       'Message references invalid method "' + message.method + '"'
     );
     this.emit('CONTACT_SEEN', contact);
-    this.emit(message.method, message);
+    this.emit(message.method, message, socket);
   } else {
     this._log.warn('dropping received late response to %s', message.id);
   }
