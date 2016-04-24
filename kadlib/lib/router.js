@@ -520,10 +520,16 @@ Router.prototype.findNode = function(nodeID, callback) {
  */
 Router.prototype.updateContact = function (contact, callback) {
     try {
+        if (this._self.nodeID == contact.nodeID) {
+            this._log.warn('updateContact: own contact update is not processed');
+            return;
+        }
+        
         var bucketIndex = utils.getBucketIndex(this._self.nodeID, contact.nodeID);
         
         this._log.debug('updating contact %j', contact);
         assert(bucketIndex < constants.B, 'Bucket index cannot exceed B');
+        assert(this._self.nodeID != contact.nodeID, 'contact cannot be its own');
         
         if (!this._buckets[bucketIndex]) {
             this._log.debug('creating new bucket for contact at index %d', bucketIndex);
