@@ -61,25 +61,25 @@ TCPTransport.prototype._open = function(done) {
  * @param {Contact} contact
  */
 TCPTransport.prototype._send = function(data, contact) {
-  var self = this;
-  var parsed = JSON.parse(data.toString());
+    var self = this;
+    var parsed = JSON.parse(data.toString());
 
-  if (this._queuedResponses[parsed.id]) {
-    this._queuedResponses[parsed.id].end(data);
-    delete this._queuedResponses[parsed.id];
-    return;
-  }
+    if (this._queuedResponses[parsed.id]) {
+        this._queuedResponses[parsed.id].end(data);
+        delete this._queuedResponses[parsed.id];
+        return;
+    }
 
-  var sock = net.createConnection(contact.port, contact.address);
+    var sock = net.createConnection(contact.port, contact.address);
 
-  sock.on('error', function(err) {
-    self._log.error('error connecting to peer', err);
-  });
+    sock.on('error', function(err) {
+        self._log.error('error connecting to peer: ' + err.message);
+    });
 
-  this._queuedResponses[parsed.id] = sock;
+    this._queuedResponses[parsed.id] = sock;
 
-  this._handleConnection(sock);
-  sock.write(data);
+    this._handleConnection(sock);
+    sock.write(data);
 };
 
 /**
