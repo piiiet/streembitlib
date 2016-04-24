@@ -12,21 +12,21 @@ var utils = require('./utils');
  * @param {String} options.nodeID - Optional known 160 bit node ID
  */
 function Contact(options) {
-  if (!(this instanceof Contact)) {
-    return new Contact(options);
-  }
+    if (!(this instanceof Contact)) {
+        return new Contact(options);
+    }
 
-  assert(options instanceof Object, 'Invalid options were supplied');
+    assert(options instanceof Object, 'Invalid options were supplied');
 
-  Object.defineProperty(this, 'nodeID', {
-    value: options.nodeID || this._createNodeID(),
-    configurable: false,
-    enumerable: true
-  });
+    Object.defineProperty(this, 'nodeID', {
+        value: options.nodeID || this._createNodeID(),
+        configurable: false,
+        enumerable: true
+    });
 
-  assert(utils.isValidKey(this.nodeID), 'Invalid nodeID was supplied');
+    assert(utils.isValidKey(this.nodeID), 'Invalid nodeID was supplied');
 
-  this.seen();
+    this.seen();
 }
 
 /**

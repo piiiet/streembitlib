@@ -27,31 +27,31 @@ var Item = require('./item');
  * @emits Node#error
  */
 function Node(options) {
-  options = merge(Object.create(Node.DEFAULTS), options);
+    options = merge(Object.create(Node.DEFAULTS), options);
 
-  if (!(this instanceof Node)) {
+    if (!(this instanceof Node)) {
     return new Node(options);
-  }
+    }
 
-  events.EventEmitter.call(this);
-  this._setStorageAdapter(options.storage);
+    events.EventEmitter.call(this);
+    this._setStorageAdapter(options.storage);
 
-  this._log = options.logger;
-  this._rpc = options.transport;
-  this._self = this._rpc._contact;
-  this._validator = options.validator;
+    this._log = options.logger;
+    this._rpc = options.transport;
+    this._self = this._rpc._contact;
+    this._validator = options.validator;
 
-  this._router = options.router || new Router({
-    logger: this._log,
-    transport: this._rpc,
-    validator: this._validateKeyValuePair.bind(this)
-  });
+    this._router = options.router || new Router({
+        logger: this._log,
+        transport: this._rpc,
+        validator: this._validateKeyValuePair.bind(this)
+    });
 
-  this._bindRouterEventHandlers();
-  this._bindRPCMessageHandlers(options);
-  this._startReplicationInterval();
-  this._startExpirationInterval();
-  this._log.info('node created with nodeID %s', this._self.nodeID);
+    this._bindRouterEventHandlers();
+    this._bindRPCMessageHandlers(options);
+    this._startReplicationInterval();
+    this._startExpirationInterval();
+    this._log.info('node created with nodeID: ' + this._self.nodeID + ', publickey: ' + this._self.public_key);
 }
 /**
  * Called when a value is retrieved or stored to validate the pair
@@ -343,6 +343,8 @@ Node.prototype._bindRPCMessageHandlers = function(options) {
     this._rpc.on('FIND_VALUE', this._handleFindValue.bind(this));
     this._rpc.on('CONTACT_SEEN', this._router.updateContact.bind(this._router));
     
+    this._rpc.on('MSGREQUEST', this.getStoredMessages.bind(this));
+    
     if (options.onPeerMessage && (typeof options.onPeerMessage == "function")) {
         this._rpc.on('PEERMSG', options.onPeerMessage.bind(this));
     }
@@ -622,5 +624,53 @@ Node.prototype._setStorageAdapter = function(storage) {
 
   this._storage = storage;
 };
+
+
+Node.prototype.getStoredMessages = function (account, msgkey, callback) {
+    try {
+        var self = this;
+        var stream = this._storage.createReadStream();
+        
+        this._log.debug('getStoredMessages for %s', account);
+        
+        var count = 0;
+        var messages = [];
+        
+        stream.on('data', function (data) {
+            if (typeof data.value === 'string') {
+                try {
+                    data.value = JSON.parse(data.value);
+                } 
+            catch (err) {
+                    return self._log.error('getStoredMessages failed to parse value');
+                }
+            }
+            
+            if (data.value.recipient && data.value.recipient == account) {
+                var keyitems = data.key.split("/");
+                if (keyitems && keyitems.length > 2 && keyitems[1] == "message") {
+                    // send only 50 messages
+                    if (messages.length < 50) {
+                        messages.push({ key: data.key, value: data.value.value });
+                    }
+                    count++;
+                }
+            }
+        });
+        
+        stream.on('error', function (err) {
+            callback(err.message ? err.message : err);
+        });
+        
+        stream.on('end', function () {
+            callback(null, count, messages);
+        });
+    }
+    catch (err) {
+        node._log.error('getStoredMessages error: %j', err);
+    }
+};
+
+
 
 module.exports = Node;

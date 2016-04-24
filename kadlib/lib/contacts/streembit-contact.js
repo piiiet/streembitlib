@@ -40,6 +40,16 @@ inherits(StreembitContact, Contact);
 * @private
 */
 StreembitContact.prototype._createNodeID = function () {
+    //if (this.public_key) {
+    //    var nodeId = crypto.createHash('sha1').update(this.public_key).digest('hex');
+    //    return nodeId;
+    //}
+    //else {
+    //    var strbase = this.address + ':' + this.port;
+    //    var nodeId = crypto.createHash('sha1').update(strbase).digest('hex');
+    //    return nodeId;
+    //}
+
     var strbase = this.address + ':' + this.port;
     var nodeId = crypto.createHash('sha1').update(strbase).digest('hex');
     return nodeId;
