@@ -2,6 +2,8 @@
 
 
 /**
+ * Implementation is based on https://github.com/kadtools/kad 
+ * Huge thank you for Gordon Hall https://github.com/gordonwritescode the author of kad library!
  * @module kad
  * @license GPL-3.0
  * @author Gordon Hall gordon@gordonwritescode.com
@@ -42,6 +44,38 @@ module.exports.constants = require('./lib/constants');
  *  Connects to the seeds by interating the seeds array
  *  Returns the peer object
  */
+
+
+function is_ipaddress(address) {
+    var ipPattern = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/; // /^(\d{ 1, 3 })\.(\d { 1, 3 })\.(\d { 1, 3 })\.(\d { 1, 3 })$/;   
+    var valid = ipPattern.test(address);
+    return valid;
+}
+
+function get_seed_ipaddress(address, callback) {
+    if (!address) {
+        return callback("get_seed_ipaddress error: invalid address");    
+    }
+    
+    var isip = is_ipaddress(address);
+    if (isip) {
+        return callback(null, address);  
+    }
+    
+    const dns = require('dns');
+    dns.resolve4(address, function (err, addresses) {
+        if (err) {
+            return callback(err);
+        }
+        
+        if (!addresses || !addresses.length) {
+            return callback("dns resolve failed to get addresses");
+        }
+        
+        callback(null, addresses[0]);
+    });
+}
+
 module.exports.create = function (options, callback) {
     var async = require('async');
     var node = require('./lib/node');
@@ -72,17 +106,27 @@ module.exports.create = function (options, callback) {
         function (seed, done) {
             var result = { seed: seed, error: null };
             try {
-                peer.connect(seed, function (err) {                    
+                // get the IP address
+                get_seed_ipaddress(seed.address, function (err, address) {
                     if (err) {
                         result.error = err;
                         return done(null, result);
                     }
                     
-                    var contact = peer._rpc._createContact(seed);
-                    peer._router.findNode(contact.nodeID, function (err) {
-                        result.error = err;
-                        done(null, result);
-                    });
+                    seed.address = address;
+
+                    peer.connect(seed, function (err) {
+                        if (err) {
+                            result.error = err;
+                            return done(null, result);
+                        }
+                        
+                        var contact = peer._rpc._createContact(seed);
+                        peer._router.findNode(contact.nodeID, function (err) {
+                            result.error = err;
+                            done(null, result);
+                        });
+                    });                    
                 });
             }
             catch (e) {
