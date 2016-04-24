@@ -15,8 +15,7 @@ module.exports = {};
 module.exports.Bucket = require('./lib/bucket');
 /** {@link Contact} */
 module.exports.Contact = require('./lib/contact');
-/** {@link Logger} */
-module.exports.Logger = require('./lib/logger');
+
 /** {@link Message} */
 module.exports.Message = require('./lib/message');
 /** {@link Node} */
@@ -56,7 +55,7 @@ module.exports.create = function (options, callback) {
     
     //  create the node
     var peer = node(options);
-    
+
     if (!seeds || seeds.length == 0) {
         options.logger.warn("there are no seeds defined, the node is not connected to any seeds");
         // There are no seeds, this must be the very first partcicipant of the Streembit network
@@ -101,6 +100,7 @@ module.exports.create = function (options, callback) {
             results.forEach(function (item, index, array) {
                 if (item.seed && !item.error) {
                     seed_success_count++;
+                    options.logger.debug("seed connected: %j", item.seed);
                 }
             });
             

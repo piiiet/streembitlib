@@ -4,7 +4,7 @@ var assert = require('assert');
 var inherits = require('util').inherits;
 var clarinet = require('clarinet');
 var net = require('net');
-var StreembiContact = require('../contacts/streembit-contact');
+var StreembitContact = require('../contacts/streembit-contact');
 var RPC = require('../rpc');
 
 /**
@@ -18,7 +18,7 @@ function TCPTransport(contact, options) {
     return new TCPTransport(contact, options);
   }
 
-  assert(contact instanceof StreembiContact, 'Invalid contact supplied');
+  assert(contact instanceof StreembitContact, 'Invalid contact supplied');
   RPC.call(this, contact, options);
 }
 
@@ -84,54 +84,115 @@ TCPTransport.prototype._close = function() {
  * @private
  * @param {Object} connection
  */
-TCPTransport.prototype._handleConnection = function(connection) {
-  var self = this;
-  var parser = clarinet.createStream();
-  var buffer = '';
-  var opened = 0;
-  var closed = 0;
+TCPTransport.prototype._handleConnection = function (connection) {
 
-  parser.on('openobject', function() {
-    opened++;
-  });
+    var self = this;
 
-  parser.on('closeobject', function() {
-    closed++;
-
-    if (opened === closed) {
-      try {
-        var parsed = JSON.parse(buffer);
-
-        if (parsed.id && !self._queuedResponses[parsed.id]) {
-          self._queuedResponses[parsed.id] = connection;
-        }
-      } catch(err) {
-        // noop
-      }
-
-      self.receive(new Buffer(buffer), connection);
-
-      buffer = '';
-      opened = 0;
-      closed = 0;
+    var parser = clarinet.createStream();
+    var buffer = '';
+    var opened = 0;
+    var closed = 0;
+    
+    function handleInvalidMsg() {
+        buffer = '';
+        opened = 0;
+        closed = 0;
+        // TODO list on the blacklist
     }
-  });
 
-  parser.on('error', function(err) {
-    self._log.error(err.message);
-    self._log.warn('failed to parse incoming message');
-    connection.end();
-  });
+    parser.on('openobject', function() {
+        opened++;
+    });
 
-  connection.on('error', function(err) {
-    self._log.error(err.message);
-    self._log.warn('error communicating with peer');
-  });
+    parser.on('closeobject', function() {
+        closed++;
 
-  connection.on('data', function(data) {
-    buffer += data.toString('utf8');
-    parser.write(data.toString('utf8'));
-  });
+        if (opened === closed) {
+            var parsed;
+            try {
+                parsed = JSON.parse(buffer);
+            } 
+            catch (err) {               
+                return handleInvalidMsg();
+            }
+            
+            if (!parsed) {
+                return handleInvalidMsg();
+            }
+            
+            try {
+                if (parsed.type) {
+                    switch (parsed.type) {
+                        case "DISCOVERY":
+                            self._log.debug('DISCOVERY message');
+                            var addr = connection.remoteAddress;
+                            var reply = JSON.stringify({ address: addr });
+                            connection.write(reply);
+                            break;
+
+                        case "PEERMSG":
+                            var addr = connection.remoteAddress;
+                            var port = connection.remotePort;
+                            self.emit('PEERMSG', msgobj, { address: addr, port: port });
+                            break;
+
+                        case "MSGREQUEST":
+                            var account = msgobj.account;
+                            var msgkey = msgobj.msgkey;
+                            
+                            self.emit('MSGREQUEST', account, msgkey, function (err, count, msgs) {
+                                var reply = "";
+                                if (err) {
+                                    reply = JSON.stringify({ error: err });
+                                }
+                                else {
+                                    reply = JSON.stringify({ error: 0, count: count, messages: msgs });
+                                }
+                                socket.write(reply);
+                                socket.end();
+                            });
+                            break;
+
+                        default:
+                            return handleInvalidMsg();
+                            break
+                    }
+                }
+                else{
+                    // all other messages
+                    if (parsed.id && !self._queuedResponses[parsed.id]) {
+                        self._queuedResponses[parsed.id] = connection;
+                    }
+                    
+                    self.receive(new Buffer(buffer));
+                }
+            }
+            catch (e) {
+                self._log.error('TCP handleConnection error: %j', e);
+                connection.end();
+            }
+
+            buffer = '';
+            opened = 0;
+            closed = 0;
+        }
+    });
+
+    parser.on('error', function(err) {
+        self._log.error(err.message);
+        self._log.warn('failed to parse incoming message');
+        connection.end();
+    });
+
+    connection.on('error', function (err) {
+        var clientaddr = connection.remoteAddress + ":" + connection.remotePort;
+        self._log.error('error communicating with peer ' + clientaddr + ' error: ' + err.message);
+    });
+
+    connection.on('data', function(data) {
+        buffer += data.toString('utf8');
+        parser.write(data.toString('utf8'));
+    });
 };
 
 module.exports = TCPTransport;

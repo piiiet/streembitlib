@@ -8,7 +8,6 @@ var _ = require('lodash');
 var constants = require('./constants');
 var utils = require('./utils');
 var Message = require('./message');
-var Logger = require('./logger');
 var Bucket = require('./bucket');
 var Contact = require('./contact');
 var Item = require('./item');
@@ -25,22 +24,27 @@ var Item = require('./item');
  * @emits Router#shift
  */
 function Router(options) {
-  if (!(this instanceof Router)) {
-    return new Router(options);
-  }
+    if (!(this instanceof Router)) {
+        return new Router(options);
+    }
+    
+    assert(options.logger && typeof options.logger.error === 'function' 
+            && typeof options.logger.debug === 'function' && typeof options.logger.info === 'function' 
+            && typeof options.logger.warn === 'function', 'Invalid logger was supplied');
 
-  this._log = options.logger || new Logger(4);
-  this._buckets = {};
-  this._rpc = options.transport;
-  this._self = this._rpc._contact;
-  this._validator = options.validator;
+    this._log = options.logger;
+    this._buckets = {};
+    this._rpc = options.transport;
+    this._self = this._rpc._contact;
+    this._validator = options.validator;
 
-  Object.defineProperty(this, 'length', {
-    get: this._getSize.bind(this),
-    enumerable: false,
-    configurable: false
-  });
+    Object.defineProperty(this, 'length', {
+        get: this._getSize.bind(this),
+        enumerable: false,
+        configurable: false
+    });
 }
+
 /**
  * Called when a value is returned from a lookup to validate it
  * @callback Router~validator

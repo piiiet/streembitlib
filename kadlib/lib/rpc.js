@@ -7,7 +7,7 @@ var async = require('async');
 var constants = require('./constants');
 var Contact = require('./contact');
 var Message = require('./message');
-var Logger = require('./logger');
+
 
 /**
  * Represents an RPC interface
@@ -19,24 +19,27 @@ var Logger = require('./logger');
  * @property {Number} readyState - Closed: 0, Transitioning: 1, Open: 2
  */
 function RPC(contact, options) {
-  assert(this instanceof RPC, 'Invalid instance supplied');
-  assert(contact instanceof Contact, 'Invalid contact was supplied');
+    assert(this instanceof RPC, 'Invalid instance supplied');
+    assert(contact instanceof Contact, 'Invalid contact was supplied');
+    assert(options.logger && typeof options.logger.error === 'function' 
+            && typeof options.logger.debug === 'function' && typeof options.logger.info === 'function'
+            && typeof options.logger.warn === 'function', 'Invalid logger was supplied');
 
-  events.EventEmitter.call(this);
+    events.EventEmitter.call(this);
 
-  options = options || {};
+    options = options || {};
 
-  if (options.replyto) {
-    assert(options.replyto instanceof Contact, 'Invalid contact was supplied');
-  }
+    if (options.replyto) {
+        assert(options.replyto instanceof Contact, 'Invalid contact was supplied');
+    }
 
-  this._hooks = { before: {}, after: {} };
-  this._pendingCalls = {};
-  this._contact = options.replyto || contact;
-  this._log = (options && options.logger) || new Logger(0);
-  this.readyState = 0;
+    this._hooks = { before: {}, after: {} };
+    this._pendingCalls = {};
+    this._contact = options.replyto || contact;
+    this._log = options.logger;
+    this.readyState = 0;
 
-  this.open();
+    this.open();
 }
 
 inherits(RPC, events.EventEmitter);
@@ -272,25 +275,27 @@ RPC.prototype._createContact = function(options) {
  * @param {Contact} contact - Contact who sent the message
  */
 RPC.prototype._execPendingCallback = function(message, contact, socket) {
-  var pendingCall = this._pendingCalls[message.id];
+    var pendingCall = this._pendingCalls[message.id];
 
-  this._log.debug('checking pending rpc callback stack for %s', message.id);
+    //this._log.debug('checking pending rpc callback stack for %s', message.id);
 
-  if (Message.isResponse(message) && pendingCall) {
-    pendingCall.callback(null, message);
-    delete this._pendingCalls[message.id];
-  } else if (Message.isRequest(message)) {
-    assert(
-      constants.MESSAGE_TYPES.indexOf(message.method) !== -1,
-      'Message references invalid method "' + message.method + '"'
-    );
-    this.emit('CONTACT_SEEN', contact);
-    this.emit(message.method, message, socket);
-  } else {
-    this._log.warn('dropping received late response to %s', message.id);
-  }
+    if (Message.isResponse(message) && pendingCall) {
+        pendingCall.callback(null, message);
+        delete this._pendingCalls[message.id];
+    } 
+    else if (Message.isRequest(message)) {
+        assert(
+            constants.MESSAGE_TYPES.indexOf(message.method) !== -1,
+            'Message references invalid method "' + message.method + '"'
+        );
+        this.emit('CONTACT_SEEN', contact);
+        this.emit(message.method, message, socket);
+    } 
+    else {
+        this._log.warn('dropping received late response to %s', message.id);
+    }
 
-  this._trigger('after:receive', []);
+    this._trigger('after:receive', []);
 };
 
 /**
@@ -298,18 +303,18 @@ RPC.prototype._execPendingCallback = function(message, contact, socket) {
  * @private
  */
 RPC.prototype._expireCalls = function() {
-  this._log.debug('checking pending rpc callbacks for expirations');
+    //this._log.debug('checking pending rpc callbacks for expirations');
 
-  for (var rpcID in this._pendingCalls) {
-    var pendingCall = this._pendingCalls[rpcID];
-    var timePassed = Date.now() - pendingCall.timestamp;
+    for (var rpcID in this._pendingCalls) {
+        var pendingCall = this._pendingCalls[rpcID];
+        var timePassed = Date.now() - pendingCall.timestamp;
 
-    if (timePassed > constants.T_RESPONSETIMEOUT) {
-      this._log.warn('rpc call %s timed out', rpcID);
-      pendingCall.callback(new Error('RPC with ID `' + rpcID + '` timed out'));
-      delete this._pendingCalls[rpcID];
+        if (timePassed > constants.T_RESPONSETIMEOUT) {
+            this._log.warn('rpc call %s timed out', rpcID);
+            pendingCall.callback(new Error('RPC with ID `' + rpcID + '` timed out'));
+            delete this._pendingCalls[rpcID];
+        }
     }
-  }
 };
 
 /**

@@ -9,7 +9,7 @@ var constants = require('./constants');
 var Router = require('./router');
 var Message = require('./message');
 var Item = require('./item');
-var Logger = require('./logger');
+
 
 /**
  * Represents a Kademlia node
@@ -48,7 +48,7 @@ function Node(options) {
   });
 
   this._bindRouterEventHandlers();
-  this._bindRPCMessageHandlers();
+  this._bindRPCMessageHandlers(options);
   this._startReplicationInterval();
   this._startExpirationInterval();
   this._log.info('node created with nodeID %s', this._self.nodeID);
@@ -94,9 +94,7 @@ function Node(options) {
 
 inherits(Node, events.EventEmitter);
 
-Node.DEFAULTS = {
-  logger: new Logger(4)
-};
+Node.DEFAULTS = {};
 
 /**
  * Connects to the overlay network
@@ -288,30 +286,31 @@ Node.prototype._validateKeyValuePair = function(key, value, callback) {
  * @private
  */
 Node.prototype._bindRouterEventHandlers = function() {
-  var self = this;
+    var self = this;
 
-  this.connected = false;
-
-  this.on('join', function() {
-    this.connected = true;
-  });
-
-  this.on('leave', function() {
     this.connected = false;
-  });
 
-  function checkRouterStatus(contact) {
-    if (self._router.length) {
-      self.emit('join', contact);
-      self.emit('connect', contact);
-    } else {
-      self.emit('leave', contact);
-      self.emit('disconnect', contact);
+    this.on('join', function() {
+        this.connected = true;
+    });
+
+    this.on('leave', function() {
+        this.connected = false;
+    });
+
+    function checkRouterStatus(contact) {
+        if (self._router.length) {
+            self.emit('join', contact);
+            self.emit('connect', contact);
+        } 
+        else {
+            self.emit('leave', contact);
+            self.emit('disconnect', contact);
+        }
     }
-  }
 
-  this._router.on('add', checkRouterStatus);
-  this._router.on('remove', checkRouterStatus);
+    this._router.on('add', checkRouterStatus);
+    this._router.on('remove', checkRouterStatus);
 };
 
 /**
@@ -335,18 +334,22 @@ Node.prototype._ensureTransportState = function(callback) {
  * Setup event listeners for rpc messages
  * @private
  */
-Node.prototype._bindRPCMessageHandlers = function() {
-  var self = this;
+Node.prototype._bindRPCMessageHandlers = function(options) {
+    var self = this;
 
-  this._rpc.on('PING', this._handlePing.bind(this));
-  this._rpc.on('STORE', this._handleStore.bind(this));
-  this._rpc.on('FIND_NODE', this._handleFindNode.bind(this));
-  this._rpc.on('FIND_VALUE', this._handleFindValue.bind(this));
-  this._rpc.on('CONTACT_SEEN', this._router.updateContact.bind(this._router));
+    this._rpc.on('PING', this._handlePing.bind(this));
+    this._rpc.on('STORE', this._handleStore.bind(this));
+    this._rpc.on('FIND_NODE', this._handleFindNode.bind(this));
+    this._rpc.on('FIND_VALUE', this._handleFindValue.bind(this));
+    this._rpc.on('CONTACT_SEEN', this._router.updateContact.bind(this._router));
+    
+    if (options.onPeerMessage && (typeof options.onPeerMessage == "function")) {
+        this._rpc.on('PEERMSG', options.onPeerMessage.bind(this));
+    }
 
-  this._rpc.on('ready', function() {
-    self._log.debug('node listening on %j', self._self.toString());
-  });
+    this._rpc.on('ready', function() {
+        self._log.debug('node listening on %j', self._self.toString());
+    });
 };
 
 /**
