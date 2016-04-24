@@ -115,25 +115,29 @@ Node.DEFAULTS = {};
  * @returns {Node}
  */
 Node.prototype.connect = function(contact, callback) {
-  var seed = this._rpc._createContact(contact);
-  var done = callback || function() {};
+    var seed = this._rpc._createContact(contact);    
+    if (!seed) {
+        return callback("no seed created by RPC _createContact");
+    }
 
-  this._log.debug('entering overlay network via %j', seed);
+    var done = callback || function () { };
 
-  async.waterfall([
+    this._log.debug('entering overlay network via %j', seed);
+
+    async.waterfall([
     this._ensureTransportState.bind(this),
     this._router.updateContact.bind(this._router, seed),
     this._router.findNode.bind(this._router, this._self.nodeID),
     this._router.refreshBucketsBeyondClosest.bind(this._router)
-  ], function(err) {
+    ], function(err) {
     if (err) {
-      return done(err);
+    return done(err);
     }
 
     done(null, contact);
-  });
+    });
 
-  return this;
+    return this;
 };
 /**
  * This callback is called upon completion of {@link Node#connect}

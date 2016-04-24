@@ -518,32 +518,37 @@ Router.prototype.findNode = function(nodeID, callback) {
  * @param {Router~updateContactCallback} callback - Optional completion calback
  * @returns {Contact}
  */
-Router.prototype.updateContact = function(contact, callback) {
-    var bucketIndex = utils.getBucketIndex(this._self.nodeID, contact.nodeID);
-
-    this._log.debug('updating contact %j', contact);
-    assert(bucketIndex < constants.B, 'Bucket index cannot exceed B');
-
-    if (!this._buckets[bucketIndex]) {
-        this._log.debug('creating new bucket for contact at index %d', bucketIndex);
-        this._buckets[bucketIndex] = new Bucket();
+Router.prototype.updateContact = function (contact, callback) {
+    try {
+        var bucketIndex = utils.getBucketIndex(this._self.nodeID, contact.nodeID);
+        
+        this._log.debug('updating contact %j', contact);
+        assert(bucketIndex < constants.B, 'Bucket index cannot exceed B');
+        
+        if (!this._buckets[bucketIndex]) {
+            this._log.debug('creating new bucket for contact at index %d', bucketIndex);
+            this._buckets[bucketIndex] = new Bucket();
+        }
+        
+        var bucket = this._buckets[bucketIndex];
+        
+        contact.seen();
+        
+        if (bucket.hasContact(contact.nodeID)) {
+            this._moveContactToTail(contact, bucket, callback);
+        } 
+        else if (bucket.getSize() < constants.K) {
+            this._moveContactToHead(contact, bucket, callback);
+        } 
+        else {
+            this._pingContactAtHead(contact, bucket, callback);
+        }
+        
+        return contact;
     }
-
-    var bucket = this._buckets[bucketIndex];
-
-    contact.seen();
-
-    if (bucket.hasContact(contact.nodeID)) {
-        this._moveContactToTail(contact, bucket, callback);
-    } 
-    else if (bucket.getSize() < constants.K) {
-        this._moveContactToHead(contact, bucket, callback);
-    } 
-    else {
-        this._pingContactAtHead(contact, bucket, callback);
+    catch (err) {
+        this._log.error('Router updateContact error: %j', err);
     }
-
-    return contact;
 };
 /**
  * This callback is called upon completion of {@link Router#updateContact}

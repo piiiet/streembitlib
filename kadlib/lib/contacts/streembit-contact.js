@@ -34,10 +34,11 @@ function StreembitContact(options) {
     assert(typeof options === 'object', 'Invalid options were supplied');
     assert(typeof options.address === 'string', 'Invalid address was supplied');
     assert(typeof options.port === 'number', 'Invalid port was supplied');
+    assert(typeof options.public_key === 'string', 'Invalid public key was supplied');
 
     this.address = options.address;
     this.port = options.port;
-    this.public_key = options.public_key || "";
+    this.public_key = options.public_key;
     this.account = options.account || "";
 
     Contact.call(this, options);
@@ -50,17 +51,7 @@ inherits(StreembitContact, Contact);
 * @private
 */
 StreembitContact.prototype._createNodeID = function () {
-    //if (this.public_key) {
-    //    var nodeId = crypto.createHash('sha1').update(this.public_key).digest('hex');
-    //    return nodeId;
-    //}
-    //else {
-    //    var strbase = this.address + ':' + this.port;
-    //    var nodeId = crypto.createHash('sha1').update(strbase).digest('hex');
-    //    return nodeId;
-    //}
-
-    var strbase = this.address + ':' + this.port;
+    var strbase = this.address + ':' + this.port + ':' + this.public_key;
     var nodeId = crypto.createHash('sha1').update(strbase).digest('hex');
     return nodeId;
 };

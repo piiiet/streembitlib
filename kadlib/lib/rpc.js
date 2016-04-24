@@ -276,8 +276,13 @@ RPC.prototype._trigger = function(event, args, complete) {
  * @param {Object} options - Data to be passed to the transport's
  * {@link Contact} constructor
  */
-RPC.prototype._createContact = function(options) {
-  return new this._contact.constructor(options);
+RPC.prototype._createContact = function (options) {
+    try {
+        return new this._contact.constructor(options);
+    }
+    catch (err) {
+        this._log.error("RPC _createContact error: %j", err);
+    }
 };
 
 /**

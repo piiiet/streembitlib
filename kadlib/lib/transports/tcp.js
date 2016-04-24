@@ -25,12 +25,12 @@ var RPC = require('../rpc');
  * @param {AddressPortContact} contact - Your node's {@link Contact} instance
  */
 function TCPTransport(contact, options) {
-  if (!(this instanceof TCPTransport)) {
-    return new TCPTransport(contact, options);
-  }
+    if (!(this instanceof TCPTransport)) {
+        return new TCPTransport(contact, options);
+    }
 
-  assert(contact instanceof StreembitContact, 'Invalid contact supplied');
-  RPC.call(this, contact, options);
+    assert(contact instanceof StreembitContact, 'Invalid contact supplied');
+    RPC.call(this, contact, options);
 }
 
 inherits(TCPTransport, RPC);
