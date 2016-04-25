@@ -27,7 +27,7 @@ function Contact(options) {
         return new Contact(options);
     }
 
-    assert(options instanceof Object, 'Invalid options were supplied');
+    assert(typeof options === 'object', 'Invalid options were supplied');
 
     Object.defineProperty(this, 'nodeID', {
         value: options.nodeID || this._createNodeID(),
