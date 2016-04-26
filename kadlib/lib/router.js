@@ -165,9 +165,9 @@ Router.prototype.removeContact = function(contact) {
  * @returns {Contact|null}
  */
 Router.prototype.getContactByNodeID = function(nodeID) {
-  var contact = this.getNearestContacts(nodeID, 1, this._self)[0];
+    var contact = this.getNearestContacts(nodeID, 1, this._self)[0];
 
-  return contact.nodeID === nodeID ? contact : null;
+    return contact && contact.nodeID === nodeID ? contact : null;
 };
 
 /**
