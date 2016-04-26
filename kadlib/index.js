@@ -154,13 +154,14 @@ module.exports.find_contact = function (node, account, public_key, callback) {
         }
 
         var contact;
-        contacts.forEach(function (item, index, array) {
-            if (item.nodeID == nodeID) {
-                contact = item;
+        for(var i=0; i < contacts.length; i++ ) {
+            if (contacts[i].nodeID == nodeID) {
+                contact = contacts[i];
+                break;
             }
-        });
+        }
         
-        callback(null, (contact || null ));
+        callback(null, contact );
     });
 
 }
