@@ -118,3 +118,42 @@ module.exports.create = function (options, callback) {
     );
 
 };
+
+
+module.exports.find_contact = function (node, account, public_key, callback) {
+    
+    if (!node) {
+        return callback("invalid node parameter");
+    }
+    if (!account) {
+        return callback("invalid account parameter");
+    }
+    if (!public_key) {
+        return callback("invalid public_key parameter");
+    }
+    if (!callback || typeof callback != "function") {
+        return callback("invalid callback parameter");
+    }
+
+    var idbase = account + ':' + public_key;
+    var utils = require('./lib/utils');
+    var nodeID = utils.createID(idbase);
+    
+    var contact = node._router.getContactByNodeID(nodeID);
+    if (contact) {
+        return callback(null, contact);
+    }
+
+    node._router.findNode(nodeID, function (err, contacts) {
+        if (err) {
+            return callback(err);
+        }
+        
+        if (!contacts || !contacts.length) {
+            return callback(null, null);
+        }
+
+        callback(null, contacts[0]);
+    });
+
+}

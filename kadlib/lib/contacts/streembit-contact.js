@@ -39,7 +39,15 @@ function StreembitContact(options) {
     this.address = options.address;
     this.port = options.port;
     this.public_key = options.public_key;
-    this.account = options.account || "";
+    
+    if (options.account && typeof options.account === 'string' && options.account.length > 0) {
+        var str = options.account.trim();
+        assert(str.length > 0, 'Invalid account was supplied');
+        this.account = options.account;
+    }
+    else {
+        this.account = this.address + ':' + this.port;
+    }
 
     Contact.call(this, options);
 }
@@ -51,8 +59,8 @@ inherits(StreembitContact, Contact);
 * @private
 */
 StreembitContact.prototype._createNodeID = function () {
-    var strbase = this.address + ':' + this.port + ':' + this.public_key;
-    var nodeId = crypto.createHash('sha1').update(strbase).digest('hex');
+    var hashbase = this.account + ':' + this.public_key;
+    var nodeId = crypto.createHash('sha1').update(hashbase).digest('hex');
     return nodeId;
 };
 

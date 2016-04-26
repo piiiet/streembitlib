@@ -63,7 +63,7 @@ function Node(options) {
     this._bindRPCMessageHandlers(options);
     this._startReplicationInterval();
     this._startExpirationInterval();
-    this._log.info('node created with nodeID: ' + this._self.nodeID + ', publickey: ' + this._self.public_key);
+    this._log.info('node created with account: ' + this._self.account + ', nodeID: ' + this._self.nodeID + ', publickey: ' + this._self.public_key);
 }
 /**
  * Called when a value is retrieved or stored to validate the pair
