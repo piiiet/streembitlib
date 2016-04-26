@@ -122,7 +122,7 @@ module.exports.create = function (options, callback) {
 
 module.exports.find_contact = function (node, account, public_key, callback) {
     
-    if (!node) {
+    if (!node || !node._router || !node._router.getContactByNodeID) {
         return callback("invalid node parameter");
     }
     if (!account) {
