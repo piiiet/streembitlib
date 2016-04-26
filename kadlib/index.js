@@ -134,9 +134,9 @@ module.exports.find_contact = function (node, account, public_key, callback) {
     if (!callback || typeof callback != "function") {
         return callback("invalid callback parameter");
     }
-
-    var idbase = account + ':' + public_key;
+    
     var utils = require('./lib/utils');
+    var idbase = account + ':' + public_key;    
     var nodeID = utils.createID(idbase);
     
     var contact = node._router.getContactByNodeID(nodeID);
@@ -149,8 +149,8 @@ module.exports.find_contact = function (node, account, public_key, callback) {
             return callback(err);
         }
         
-        if (!contacts || !contacts.length) {
-            return callback(null, null);
+        if (!contacts || !Array.isArray(contacts) || !contacts.length) {
+            return callback();
         }
 
         callback(null, contacts[0]);
