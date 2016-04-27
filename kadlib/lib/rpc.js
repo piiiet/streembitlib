@@ -140,16 +140,16 @@ RPC.prototype.send = function(contact, message, callback) {
         self._trigger('after:serialize');
         self._trigger('before:send', [serialized, contact], function() {
             if (Message.isRequest(message) && typeof callback === 'function') {
-                self._log.debug('queuing callback for reponse to %s', message.id);
+                //self._log.debug('queuing callback for reponse to %s', message.id);
 
                 self._pendingCalls[message.id] = {
                     timestamp: Date.now(),
                     callback: callback
                 };
             } 
-            else {
-                // self._log.debug('not waiting on callback for message %s', message.id);
-            }
+            //else {
+            //    // self._log.debug('not waiting on callback for message %s', message.id);
+            //}
 
             self._send(message.serialize(), contact);
             self._trigger('after:send');

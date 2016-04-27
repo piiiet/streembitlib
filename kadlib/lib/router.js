@@ -90,22 +90,20 @@ inherits(Router, events.EventEmitter);
  * @param {Router~lookupCallback} callback - Called when the lookup is complete
  */
 Router.prototype.lookup = function(type, key, callback) {
-  assert(['NODE', 'VALUE'].indexOf(type) !== -1, 'Invalid search type');
+    assert(['NODE', 'VALUE'].indexOf(type) !== -1, 'Invalid search type');
 
-  var state = this._createLookupState(type, key);
+    var state = this._createLookupState(type, key);
 
-  if (!state.closestNode) {
-    return callback(new Error('Not connected to any peers'));
-  }
+    if (!state.closestNode) {
+        return callback(new Error('Not connected to any peers'));
+    }
 
-  state.closestNodeDistance = utils.getDistance(
-    state.hashedKey,
-    state.closestNode.nodeID
-  );
+    state.closestNodeDistance = utils.getDistance(state.hashedKey, state.closestNode.nodeID);
 
-  this._log.debug('performing network walk for %s %s', type, key);
-  this._iterativeFind(state, state.shortlist, callback);
+    //this._log.debug('performing network walk for %s %s', type, key);
+    this._iterativeFind(state, state.shortlist, callback);
 };
+
 /**
  * This callback is called upon completion of {@link Router#lookup}
  * @callback Router~lookupCallback
@@ -211,7 +209,7 @@ Router.prototype._iterativeFind = function(state, contacts, callback) {
 
     //this._log.debug('starting contact iteration for key %s', state.key);
     async.each(contacts, this._queryContact.bind(this, state), function() {
-        self._log.debug('finished iteration, handling results');
+        //self._log.debug('finished iteration, handling results');
         self._handleQueryResults(state, callback);
     });
 };
@@ -316,9 +314,9 @@ Router.prototype._validateFindResult = function(state, msg, contact, done) {
  * @param {Array} contacts - Contacts to add to the shortlist
  */
 Router.prototype._addToShortList = function(state, contacts) {
-  assert(Array.isArray(contacts), 'No contacts supplied');
-  state.shortlist = state.shortlist.concat(contacts);
-  state.shortlist = _.uniq(state.shortlist, false, 'nodeID');
+    assert(Array.isArray(contacts), 'No contacts supplied');
+    state.shortlist = state.shortlist.concat(contacts);
+    state.shortlist = _.uniq(state.shortlist, false, 'nodeID');
 };
 
 /**
@@ -328,9 +326,9 @@ Router.prototype._addToShortList = function(state, contacts) {
  * @param {String} nodeID - Node ID of the contact to remove
  */
 Router.prototype._removeFromShortList = function(state, nodeID) {
-  state.shortlist = _.reject(state.shortlist, function(c) {
-    return c.nodeID === nodeID;
-  });
+    state.shortlist = _.reject(state.shortlist, function(c) {
+        return c.nodeID === nodeID;
+    });
 };
 
 /**
@@ -340,37 +338,35 @@ Router.prototype._removeFromShortList = function(state, nodeID) {
  * @param {Function} callback
  */
 Router.prototype._handleQueryResults = function(state, callback) {
-  if (state.foundValue) {
-    this._log.debug('a value was returned from query %s', state.key);
-    return this._handleValueReturned(state, callback);
-  }
+    if (state.foundValue) {
+        //this._log.debug('a value was returned from query %s', state.key);
+        return this._handleValueReturned(state, callback);
+    }
 
-  var closestNodeUnchanged = state.closestNode === state.previousClosestNode;
-  var shortlistFull = state.shortlist.length >= constants.K;
+    var closestNodeUnchanged = state.closestNode === state.previousClosestNode;
+    var shortlistFull = state.shortlist.length >= constants.K;
 
-  if (closestNodeUnchanged || shortlistFull) {
-    this._log.debug(
-      'shortlist is full or there are no known nodes closer to key %s',
-      state.key
+    if (closestNodeUnchanged || shortlistFull) {
+        //this._log.debug('shortlist is full or there are no known nodes closer to key %s', state.key);
+        return callback(null, 'NODE', state.shortlist);
+    }
+
+    var remainingContacts = _.reject(state.shortlist, function(c) {
+        return state.contacted[c.nodeID];
+    });
+
+    if (remainingContacts.length === 0) {
+        //this._log.debug('there are no more remaining contacts to query');
+        return callback(null, 'NODE', state.shortlist);
+    }
+
+    //this._log.debug('continuing with iterative query for key %s', state.key);
+    
+    this._iterativeFind(
+        state,
+        remainingContacts.splice(0, constants.ALPHA),
+        callback
     );
-    return callback(null, 'NODE', state.shortlist);
-  }
-
-  var remainingContacts = _.reject(state.shortlist, function(c) {
-    return state.contacted[c.nodeID];
-  });
-
-  if (remainingContacts.length === 0) {
-    this._log.debug('there are no more remaining contacts to query');
-    return callback(null, 'NODE', state.shortlist);
-  }
-
-  this._log.debug('continuing with iterative query for key %s', state.key);
-  this._iterativeFind(
-    state,
-    remainingContacts.splice(0, constants.ALPHA),
-    callback
-  );
 };
 
 /**
@@ -416,24 +412,25 @@ Router.prototype._handleValueReturned = function(state, callback) {
  * @param {Router~refreshBeyondCallback} done - Called upon successful refresh
  */
 Router.prototype.refreshBucketsBeyondClosest = function(contacts, done) {
-  var bucketIndexes = Object.keys(this._buckets);
-  var leastBucket = _.min(bucketIndexes);
+    var bucketIndexes = Object.keys(this._buckets);
+    var leastBucket = _.min(bucketIndexes);
 
-  function bucketFilter(index) {
-    return index >= leastBucket;
-  }
+    function bucketFilter(index) {
+        return index >= leastBucket;
+    }
 
-  var refreshBuckets = bucketIndexes.filter(bucketFilter);
-  var queue = async.queue(this.refreshBucket.bind(this), 1);
+    var refreshBuckets = bucketIndexes.filter(bucketFilter);
+    var queue = async.queue(this.refreshBucket.bind(this), 1);
 
-  this._log.debug('refreshing buckets farthest than closest known');
+    //this._log.debug('refreshing buckets farthest than closest known');
 
-  refreshBuckets.forEach(function(index) {
-    queue.push(index);
-  });
+    refreshBuckets.forEach(function(index) {
+        queue.push(index);
+    });
 
-  done();
+    done();
 };
+
 /**
  * This callback is called upon completion of
  * {@link Router#refreshBucketsBeyondClosest}
