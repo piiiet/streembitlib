@@ -133,8 +133,8 @@ Router.prototype._getSize = function() {
  * Empties the routing table, clearing all known contacts
  */
 Router.prototype.empty = function() {
-  this._buckets = {};
-  this.emit('remove', this._self);
+    this._buckets = {};
+    this.emit('remove', this._self);
 };
 
 /**
@@ -143,20 +143,20 @@ Router.prototype.empty = function() {
  * @returns {Boolean} Operation succeeded (contact was in expected bucket)
  */
 Router.prototype.removeContact = function(contact) {
-  var index = utils.getBucketIndex(this._self.nodeID, contact.nodeID);
-  var bucket = this._buckets[index];
+    var index = utils.getBucketIndex(this._self.nodeID, contact.nodeID);
+    var bucket = this._buckets[index];
 
-  this._log.debug('removing contact %j', contact);
-  assert(index < constants.B, 'Bucket index may not exceed B');
+    this._log.debug('removing contact %j', contact);
+    assert(index < constants.B, 'Bucket index may not exceed B');
 
-  if (!bucket) {
-    return false;
-  }
+    if (!bucket) {
+        return false;
+    }
 
-  bucket.removeContact(contact);
-  this.emit('shift', contact, bucket, bucket.indexOf(contact));
+    bucket.removeContact(contact);
+    this.emit('shift', contact, bucket, bucket.indexOf(contact));
 
-  return true;
+    return true;
 };
 
 /**
@@ -207,13 +207,13 @@ Router.prototype._createLookupState = function(type, key) {
  * @param {Function} callback
  */
 Router.prototype._iterativeFind = function(state, contacts, callback) {
-  var self = this;
+    var self = this;
 
-  this._log.debug('starting contact iteration for key %s', state.key);
-  async.each(contacts, this._queryContact.bind(this, state), function() {
-    self._log.debug('finished iteration, handling results');
-    self._handleQueryResults(state, callback);
-  });
+    //this._log.debug('starting contact iteration for key %s', state.key);
+    async.each(contacts, this._queryContact.bind(this, state), function() {
+        self._log.debug('finished iteration, handling results');
+        self._handleQueryResults(state, callback);
+    });
 };
 
 /**
@@ -224,27 +224,24 @@ Router.prototype._iterativeFind = function(state, contacts, callback) {
  * @param {Function} callback
  */
 Router.prototype._queryContact = function(state, contactInfo, callback) {
-  var self = this;
-  var contact = this._rpc._createContact(contactInfo);
-  var message = new Message({
-    method: 'FIND_' + state.type,
-    params: { key: state.key, contact: this._self }
-  });
+    var self = this;
+    var contact = this._rpc._createContact(contactInfo);
+    var message = new Message({
+        method: 'FIND_' + state.type,
+        params: { key: state.key, contact: this._self }
+    });
 
-  this._log.debug('querying %s for key %s', contact.nodeID, state.key);
-  this._rpc.send(contact, message, function(err, response) {
-    if (err) {
-      self._log.warn(
-        'query failed, removing contact for shortlist, reason %s',
-        err.message
-      );
-      self._removeFromShortList(state, contact.nodeID);
-      self.removeContact(contact);
-      return callback();
-    }
+    //this._log.debug('querying %s for key %s', contact.nodeID, state.key);
+    this._rpc.send(contact, message, function(err, response) {
+        if (err) {
+            self._log.warn('query failed, removing contact for shortlist, reason %s', err.message);
+            self._removeFromShortList(state, contact.nodeID);
+            self.removeContact(contact);
+            return callback();
+        }
 
-    self._handleFindResult(state, response, contact, callback);
-  });
+        self._handleFindResult(state, response, contact, callback);
+    });
 };
 
 /**
@@ -449,8 +446,8 @@ Router.prototype.refreshBucketsBeyondClosest = function(contacts, done) {
  * @param {Function} callback
  */
 Router.prototype.refreshBucket = function(index, callback) {
-  var random = utils.getRandomInBucketRangeBuffer(index);
-  this.findNode(random.toString('hex'), callback);
+    var random = utils.getRandomInBucketRangeBuffer(index);
+    this.findNode(random.toString('hex'), callback);
 };
 /**
  * This callback is called upon completion of {@link Router#refreshBucket}
@@ -465,20 +462,22 @@ Router.prototype.refreshBucket = function(index, callback) {
  * @param {Router~findValueCallback} callback - Called upon lookup completion
  */
 Router.prototype.findValue = function(key, callback) {
-  var self = this;
+    var self = this;
 
-  this._log.debug('searching for value at key %s', key);
+    //this._log.debug('searching for value at key %s', key);
 
-  this.lookup('VALUE', key, function(err, type, value) {
-    if (err || type === 'NODE') {
-      return callback(new Error('Failed to find value for key: ' + key));
-    }
+    this.lookup('VALUE', key, function(err, type, value) {
+        if (err || type === 'NODE') {
+            return callback(new Error('Failed to find value for key: ' + key));
+        }
 
-    self._log.debug('found value for key %s', key);
+        //self._log.debug('found value for key %s', key);
 
-    callback(null, value);
-  });
+        callback(null, value);
+    });
 };
+
+
 /**
  * This callback is called upon completion of {@link Router#findValue}
  * @callback Router~findValueCallback
@@ -492,19 +491,20 @@ Router.prototype.findValue = function(key, callback) {
  * @param {Router~findNodeCallback} callback - Called upon lookup completion
  */
 Router.prototype.findNode = function(nodeID, callback) {
-  var self = this;
+    var self = this;
 
-  this._log.debug('searching for nodes close to key %s', nodeID);
+    //this._log.debug('searching for nodes close to key %s', nodeID);
 
-  this.lookup('NODE', nodeID, function(err, type, contacts) {
-    if (err) {
-      return callback(err);
-    }
+    this.lookup('NODE', nodeID, function(err, type, contacts) {
+        if (err) {
+            return callback(err);
+        }
 
-    self._log.debug('found %d nodes close to key %s', contacts.length, nodeID);
-    callback(null, contacts);
-  });
+        //self._log.debug('found %d nodes close to key %s', contacts.length, nodeID);
+        callback(null, contacts);
+    });
 };
+
 /**
  * This callback is called upon completion of {@link Router#findNode}
  * @callback Router~findNodeCallback

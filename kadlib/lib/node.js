@@ -262,7 +262,7 @@ Node.prototype._putValidatedKeyValue = function(key, value, callback) {
       );
     }
 
-    node._log.debug('found %d contacts for STORE operation', contacts.length);
+    //node._log.debug('found %d contacts for STORE operation', contacts.length);
 
     async.each(contacts, function(contact, done) {
       var message = new Message({
