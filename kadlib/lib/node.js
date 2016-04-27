@@ -269,7 +269,7 @@ Node.prototype._putValidatedKeyValue = function(key, value, callback) {
         method: 'STORE',
         params: { item: item, contact: node._self }
       });
-      node._log.debug('sending STORE message to %j', contact);
+      //node._log.debug('sending STORE message to %j', contact);
       node._rpc.send(contact, message, done);
     }, function(err) {
       if (contacts.length < constants.ALPHA) {
@@ -545,7 +545,7 @@ Node.prototype._handleStore = function(incomingMsg) {
     );
   }
 
-  this._log.info('received valid STORE from %s', params.contact.nodeID);
+  //this._log.info('received valid STORE from %s', params.contact.nodeID);
 
   this._validateKeyValuePair(item.key, item.value, function(valid) {
     if (!valid) {
@@ -590,30 +590,28 @@ Node.prototype._storeValidatedKeyValue = function(item, incomingMsg) {
  * @private
  * @param {Message} incomingMsg
  */
-Node.prototype._handleFindNode = function(incomingMsg) {
-  this._log.debug('received FIND_NODE from %j', incomingMsg.params.contact);
+Node.prototype._handleFindNode = function (incomingMsg) {
 
-  var node = this;
-  var params = incomingMsg.params;
-  var contact = this._rpc._createContact(params.contact);
+  //this._log.debug('received FIND_NODE from %j', incomingMsg.params.contact);
 
-  var near = this._router.getNearestContacts(
-    params.key,
-    constants.K,
-    params.contact.nodeID
-  );
+    var node = this;
+    var params = incomingMsg.params;
+    var contact = this._rpc._createContact(params.contact);
 
-  var message = new Message({
-    id: incomingMsg.id,
-    result: { nodes: near, contact: node._self }
-  });
+    var near = this._router.getNearestContacts(
+        params.key,
+        constants.K,
+        params.contact.nodeID
+    );
 
-  this._log.debug(
-    'sending %s nearest %d contacts',
-    params.contact.nodeID,
-    near.length
-  );
-  this._rpc.send(contact, message);
+    var message = new Message({
+        id: incomingMsg.id,
+        result: { nodes: near, contact: node._self }
+    });
+
+    //this._log.debug('sending %s nearest %d contacts', params.contact.nodeID, near.length);
+
+    this._rpc.send(contact, message);
 };
 
 /**
@@ -622,51 +620,49 @@ Node.prototype._handleFindNode = function(incomingMsg) {
  * @param {Message} incomingMsg
  */
 Node.prototype._handleFindValue = function(incomingMsg) {
-  var node = this;
-  var params = incomingMsg.params;
-  var contact = this._rpc._createContact(params.contact);
-  var limit = constants.K;
+    var node = this;
+    var params = incomingMsg.params;
+    var contact = this._rpc._createContact(params.contact);
+    var limit = constants.K;
 
-  this._log.info('received valid FIND_VALUE from %s', params.contact.nodeID);
-  this._storage.get(params.key, function(err, value) {
-    if (err || !value) {
-      node._log.debug(
-        'value not found, sending contacts to %s',
-        params.contact.nodeID
-      );
+    //this._log.info('received valid FIND_VALUE from %s', params.contact.nodeID);
 
-      var notFoundMessage = new Message({
-        id: incomingMsg.id,
-        result: {
-          nodes: node._router.getNearestContacts(
-            params.key,
-            limit,
-            params.contact.nodeID
-          ),
-          contact: node._self
+    this._storage.get(params.key, function(err, value) {
+        if (err || !value) {
+            node._log.debug( 'value not found, sending contacts to %s',params.contact.nodeID );
+
+            var notFoundMessage = new Message({
+                id: incomingMsg.id,
+                result: {
+                    nodes: node._router.getNearestContacts(
+                    params.key,
+                    limit,
+                    params.contact.nodeID
+                    ),
+                    contact: node._self
+                }
+            });
+
+            return node._rpc.send(contact, notFoundMessage);
         }
-      });
 
-      return node._rpc.send(contact, notFoundMessage);
-    }
+        var parsed = JSON.parse(value);
+        var item = new Item(
+            parsed.key,
+            parsed.value,
+            parsed.publisher,
+            parsed.timestamp
+        );
 
-    var parsed = JSON.parse(value);
-    var item = new Item(
-      parsed.key,
-      parsed.value,
-      parsed.publisher,
-      parsed.timestamp
-    );
+        //node._log.debug('found value, sending to %s', params.contact.nodeID);
 
-    node._log.debug('found value, sending to %s', params.contact.nodeID);
+        var foundMessage = new Message({
+            id: incomingMsg.id,
+            result: { item: item, contact: node._self }
+        });
 
-    var foundMessage = new Message({
-      id: incomingMsg.id,
-      result: { item: item, contact: node._self }
+        node._rpc.send(contact, foundMessage);
     });
-
-    node._rpc.send(contact, foundMessage);
-  });
 };
 
 /**
@@ -675,16 +671,13 @@ Node.prototype._handleFindValue = function(incomingMsg) {
  * @param {Object} storage
  */
 Node.prototype._setStorageAdapter = function(storage) {
-  assert(typeof storage === 'object', 'No storage adapter supplied');
-  assert(typeof storage.get === 'function', 'Store has no get method');
-  assert(typeof storage.put === 'function', 'Store has no put method');
-  assert(typeof storage.del === 'function', 'Store has no del method');
-  assert(
-    typeof storage.createReadStream === 'function',
-    'Store has no createReadStream method'
-  );
+    assert(typeof storage === 'object', 'No storage adapter supplied');
+    assert(typeof storage.get === 'function', 'Store has no get method');
+    assert(typeof storage.put === 'function', 'Store has no put method');
+    assert(typeof storage.del === 'function', 'Store has no del method');
+    assert(typeof storage.createReadStream === 'function', 'Store has no createReadStream method' );
 
-  this._storage = storage;
+    this._storage = storage;
 };
 
 

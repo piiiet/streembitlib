@@ -527,7 +527,8 @@ Router.prototype.updateContact = function (contact, callback) {
         
         var bucketIndex = utils.getBucketIndex(this._self.nodeID, contact.nodeID);
         
-        this._log.debug('updating contact %j', contact);
+        //this._log.debug('updating contact %j', contact);
+
         assert(bucketIndex < constants.B, 'Bucket index cannot exceed B');
         assert(this._self.nodeID != contact.nodeID, 'contact cannot be its own');
         
@@ -569,14 +570,14 @@ Router.prototype.updateContact = function (contact, callback) {
 * @param {Function} callback
 */
 Router.prototype._moveContactToTail = function(contact, bucket, callback) {
-  this._log.debug('contact already in bucket, moving to tail');
-  bucket.removeContact(contact);
-  bucket.addContact(contact);
-  this.emit('shift', contact, bucket, bucket.indexOf(contact));
+    //this._log.debug('contact already in bucket, moving to tail');
+    bucket.removeContact(contact);
+    bucket.addContact(contact);
+    this.emit('shift', contact, bucket, bucket.indexOf(contact));
 
-  if (callback) {
-    callback();
-  }
+    if (callback) {
+        callback();
+    }
 };
 
 /**
@@ -587,13 +588,13 @@ Router.prototype._moveContactToTail = function(contact, bucket, callback) {
  * @param {Function} callback
  */
 Router.prototype._moveContactToHead = function(contact, bucket, callback) {
-  this._log.debug('contact not in bucket, moving to head');
-  bucket.addContact(contact);
-  this.emit('add', contact, bucket, bucket.indexOf(contact));
+    //this._log.debug('contact not in bucket, moving to head');
+    bucket.addContact(contact);
+    this.emit('add', contact, bucket, bucket.indexOf(contact));
 
-  if (callback) {
-    callback();
-  }
+    if (callback) {
+        callback();
+    }
 };
 
 /**
@@ -604,33 +605,34 @@ Router.prototype._moveContactToHead = function(contact, bucket, callback) {
  * @param {Function} callback
  */
 Router.prototype._pingContactAtHead = function(contact, bucket, callback) {
-  var self = this;
-  var ping = new Message({ method: 'PING', params: { contact: this._self } });
-  var head = bucket.getContact(0);
+    var self = this;
+    var ping = new Message({ method: 'PING', params: { contact: this._self } });
+    var head = bucket.getContact(0);
 
-  this._log.debug('no room in bucket, sending PING to contact at head');
-  this._rpc.send(head, ping, function(err) {
-    if (err) {
-      self._log.debug('head contact did not respond, replacing with new');
+    this._log.debug('no room in bucket, sending PING to contact at head');
+    this._rpc.send(head, ping, function(err) {
+        if (err) {
+            self._log.debug('head contact did not respond, replacing with new');
 
-      // NB: It's possible that the head contact has changed between pings
-      // NB: timeout, so we need to make sure that we get the *most* stale
-      // NB: contact.
-      head = bucket.getContact(0);
+            // NB: It's possible that the head contact has changed between pings
+            // NB: timeout, so we need to make sure that we get the *most* stale
+            // NB: contact.
+            head = bucket.getContact(0);
 
-      bucket.removeContact(head);
-      bucket.addContact(contact);
-      self.emit('drop', head, bucket, bucket.indexOf(head));
-      self.emit('add', contact, bucket, bucket.indexOf(contact));
-    } else {
-      bucket.removeContact(head);
-      bucket.addContact(head);
-    }
+            bucket.removeContact(head);
+            bucket.addContact(contact);
+            self.emit('drop', head, bucket, bucket.indexOf(head));
+            self.emit('add', contact, bucket, bucket.indexOf(contact));
+        } 
+        else {
+            bucket.removeContact(head);
+            bucket.addContact(head);
+        }
 
-    if (callback) {
-      callback();
-    }
-  });
+        if (callback) {
+            callback();
+        }
+    });
 };
 
 /**

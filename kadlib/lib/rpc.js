@@ -120,40 +120,43 @@ RPC.prototype.close = function(callback) {
  * @param {RPC~sendCallback} callback - Response handler function
  */
 RPC.prototype.send = function(contact, message, callback) {
-  var self = this;
+    var self = this;
 
-  contact = this._createContact(contact);
+    contact = this._createContact(contact);
 
-  assert(contact instanceof Contact, 'Invalid contact supplied');
-  assert(message instanceof Message, 'Invalid message supplied');
+    assert(contact instanceof Contact, 'Invalid contact supplied');
+    assert(message instanceof Message, 'Invalid message supplied');
 
-  if (Message.isRequest(message)) {
-    this._log.info('sending %s message to %j', message.method, contact);
-  } else {
-    this._log.info('replying to message to %s', message.id);
-  }
+    //if (Message.isRequest(message)) {
+    //    //this._log.info('sending %s message to %j', message.method, contact);
+    //} 
+    //else {
+    //    //this._log.info('replying to message to %s', message.id);
+    //}
 
-  this._trigger('before:serialize', [message], function() {
-    var serialized = message.serialize();
+    this._trigger('before:serialize', [message], function() {
+        var serialized = message.serialize();
 
-    self._trigger('after:serialize');
-    self._trigger('before:send', [serialized, contact], function() {
-      if (Message.isRequest(message) && typeof callback === 'function') {
-        self._log.debug('queuing callback for reponse to %s', message.id);
+        self._trigger('after:serialize');
+        self._trigger('before:send', [serialized, contact], function() {
+            if (Message.isRequest(message) && typeof callback === 'function') {
+                self._log.debug('queuing callback for reponse to %s', message.id);
 
-        self._pendingCalls[message.id] = {
-          timestamp: Date.now(),
-          callback: callback
-        };
-      } else {
-        self._log.debug('not waiting on callback for message %s', message.id);
-      }
+                self._pendingCalls[message.id] = {
+                    timestamp: Date.now(),
+                    callback: callback
+                };
+            } 
+            else {
+                // self._log.debug('not waiting on callback for message %s', message.id);
+            }
 
-      self._send(message.serialize(), contact);
-      self._trigger('after:send');
+            self._send(message.serialize(), contact);
+            self._trigger('after:send');
+        });
     });
-  });
 };
+
 /**
  * This callback is called upon receipt of a response from {@link RPC#send}
  * @callback RPC~sendCallback
@@ -179,7 +182,7 @@ RPC.prototype.receive = function(buffer, socket) {
       contact = self._createContact(message.result.contact);
     }
 
-    self._log.info('received valid message from %j', contact);
+    //self._log.info('received valid message from %j', contact);
   }
 
   if (!buffer) {
