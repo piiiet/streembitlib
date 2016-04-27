@@ -63,6 +63,11 @@ function Node(options) {
     this._bindRPCMessageHandlers(options);
     this._startReplicationInterval();
     this._startExpirationInterval();
+    
+    if (options.expireHandler && typeof options.expireHandler == "function") {
+        this.expireHandler = options.expireHandler;
+    }
+
     this._log.info('node created with account: ' + this._self.account + ', nodeID: ' + this._self.nodeID + ', publickey: ' + this._self.public_key);
 }
 /**
@@ -375,7 +380,8 @@ Node.prototype._bindRPCMessageHandlers = function(options) {
  * @private
  */
 Node.prototype._startReplicationInterval = function() {
-  setInterval(this._replicate.bind(this), constants.T_REPLICATE);
+    //  TODO review this, for now don't start replication
+    //  setInterval(this._replicate.bind(this), constants.T_REPLICATE);
 };
 
 /**
@@ -435,7 +441,47 @@ Node.prototype._startExpirationInterval = function() {
  * Expire entries older than T_EXPIRE
  * @private
  */
-Node.prototype._expire = function() {
+Node.prototype._expire = function () {
+    
+    if (!this.expireHandler) {
+        return this._log.debug('No expireHandler is defined, database cleanup will not be performed');
+    }
+
+    var self = this;
+    var stream = this._storage.createReadStream();
+    
+    this._log.debug('starting local database cleanup');
+    
+    stream.on('data', function (data) {
+        try {            
+            if (!data || !data.key) {
+                return;    
+            }
+
+            self.expireHandler(data, function (isremove) {
+                if (isremove) {
+                    self._storage.del(data.key, function (err) {
+                        if (err) {
+                            self._log.error('failed to expire item at key %s', data.key);
+                        }
+                    });
+                }
+            });           
+        }
+        catch (e) {
+            self._log.error('_expire handler error: %j', e);
+        }
+    });
+    
+    stream.on('error', function (err) {
+        self._log.error('error while cleaning up database: %s', err.message);
+    });
+    
+    stream.on('end', function () {
+        self._log.debug('local database cleanup complete');
+    });
+
+
   var self = this;
   var stream = this._storage.createReadStream();
 
