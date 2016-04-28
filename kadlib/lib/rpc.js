@@ -349,7 +349,9 @@ RPC.prototype._expireCalls = function() {
 
         if (timePassed > constants.T_RESPONSETIMEOUT) {
             this._log.warn('rpc call %s timed out', rpcID);
-            pendingCall.callback(new Error('RPC with ID `' + rpcID + '` timed out'));
+            if (pendingCall.callback) {
+                pendingCall.callback(new Error('RPC with ID `' + rpcID + '` timed out'));
+            }
             delete this._pendingCalls[rpcID];
         }
     }

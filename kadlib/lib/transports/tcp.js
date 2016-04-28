@@ -93,7 +93,7 @@ TCPTransport.prototype._send = function(data, contact) {
     var sock = net.createConnection(contact.port, contact.address);
 
     sock.on('error', function(err) {
-        self._log.error('error connecting to peer: ' + err.message);
+        //self._log.error('error connecting to peer: ' + err.message);
     });
 
     this._queuedResponses[parsed.id] = sock;
@@ -218,8 +218,8 @@ TCPTransport.prototype._handleConnection = function (connection) {
     });
 
     connection.on('error', function (err) {
-        var clientaddr = connection.remoteAddress + ":" + connection.remotePort;
-        self._log.error('error communicating with peer ' + clientaddr + ' error: ' + err.message);
+        //var clientaddr = connection.remoteAddress + ":" + connection.remotePort;
+        //self._log.error('error communicating with peer ' + clientaddr + ' error: ' + err.message);
     });
 
     connection.on('data', function(data) {
