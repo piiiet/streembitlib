@@ -391,40 +391,42 @@ Router.prototype._handleQueryResults = function(state, callback) {
 };
 
 /**
- * Handle a value being returned and store at closest nodes that didn't have it
+ * Handle a value being returned and store at closest nodes that didn't have it EXCEPT the FIND_RANGE query
  * @private
  * @param {Object} state - State machine returned from _createLookupState()
  * @param {Function} callback
  */
 Router.prototype._handleValueReturned = function(state, callback) {
-  var self = this;
+    var self = this;
 
-  var distances = state.contactsWithoutValue.map(function(contact) {
-    return {
-      distance: utils.getDistance(contact.nodeID, self._self.nodeID),
-      contact: contact
-    };
-  });
-
-  distances.sort(function(a, b) {
-    return utils.compareKeys(a.distance, b.distance);
-  });
-
-  if (distances.length >= 1) {
-    var item = state.item;
-    var closestWithoutValue = distances[0].contact;
-    var message = new Message({
-      method: 'STORE',
-      params: {
-        item: new Item(item.key, item.value, item.publisher, item.timestamp),
-        contact: this._self
-      }
+    var distances = state.contactsWithoutValue.map(function(contact) {
+        return {
+            distance: utils.getDistance(contact.nodeID, self._self.nodeID),
+            contact: contact
+        };
     });
 
-    this._rpc.send(closestWithoutValue, message);
-  }
+    distances.sort(function(a, b) {
+        return utils.compareKeys(a.distance, b.distance);
+    });
 
-  callback(null, 'VALUE', state.value);
+    if (distances.length >= 1) {
+        this._log.debug('_handleValueReturned STORE state %j', state);
+        var item = state.item;
+        var closestWithoutValue = distances[0].contact;
+        var message = new Message(
+            {
+                method: 'STORE',
+                params: {
+                    item: new Item(item.key, item.value, item.publisher, item.timestamp),
+                    contact: this._self
+                }
+            });
+
+        this._rpc.send(closestWithoutValue, message);
+    }
+
+    callback(null, 'VALUE', state.value);
 };
 
 /**
