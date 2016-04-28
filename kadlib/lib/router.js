@@ -118,7 +118,7 @@ Router.prototype.lookup = function(type, key, callback) {
 
     state.closestNodeDistance = utils.getDistance(state.hashedKey, state.closestNode.nodeID);
 
-    //this._log.debug('performing network walk for %s %s', type, key);
+    this._log.debug('performing network walk for ' + type + ' key: ' + key);
     this._iterativeFind(state, state.shortlist, callback);
 };
 
@@ -249,7 +249,7 @@ Router.prototype._queryContact = function(state, contactInfo, callback) {
         params: { key: state.key, contact: this._self }
     });
 
-    //this._log.debug('querying %s for key %s', contact.nodeID, state.key);
+    this._log.debug('querying ' + contact.nodeID + ' for key: ' + state.key);
     this._rpc.send(contact, message, function(err, response) {
         if (err) {
             self._log.warn('query failed, removing contact for shortlist, reason %s', err.message);
