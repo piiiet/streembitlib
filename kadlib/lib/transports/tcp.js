@@ -159,6 +159,7 @@ TCPTransport.prototype._handleConnection = function (connection) {
                             var addr = connection.remoteAddress;
                             var reply = JSON.stringify({ address: addr });
                             connection.write(reply);
+                            connection.end();
                             break;
 
                         case "PEERMSG":
@@ -167,26 +168,27 @@ TCPTransport.prototype._handleConnection = function (connection) {
                             self.emit('PEERMSG', msgobj, { address: addr, port: port });
                             break;
 
-                        case "MSGREQUEST":
-                            var account = msgobj.account;
-                            var msgkey = msgobj.msgkey;
+                        //case "MSGREQUEST":
+                        //    var account = msgobj.account;
+                        //    var msgkey = msgobj.msgkey;
                             
-                            self.emit('MSGREQUEST', account, msgkey, function (err, count, msgs) {
-                                var reply = "";
-                                if (err) {
-                                    reply = JSON.stringify({ error: err });
-                                }
-                                else {
-                                    reply = JSON.stringify({ error: 0, count: count, messages: msgs });
-                                }
-                                socket.write(reply);
-                                socket.end();
-                            });
-                            break;
+                        //    self.emit('MSGREQUEST', account, msgkey, function (err, count, msgs) {
+                        //        var reply = "";
+                        //        if (err) {
+                        //            reply = JSON.stringify({ error: err });
+                        //        }
+                        //        else {
+                        //            reply = JSON.stringify({ error: 0, count: count, messages: msgs });
+                        //        }
+                        //        connection.write(reply);
+                        //        connection.end();
+                        //    });
+                        //    break;
 
                         default:
-                            return handleInvalidMsg();
-                            break
+                            handleInvalidMsg();
+                            connection.end();
+                            break;
                     }
                 }
                 else{

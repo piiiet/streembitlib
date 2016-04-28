@@ -108,7 +108,7 @@ inherits(Router, events.EventEmitter);
  * @param {Router~lookupCallback} callback - Called when the lookup is complete
  */
 Router.prototype.lookup = function(type, key, callback) {
-    assert(['NODE', 'VALUE'].indexOf(type) !== -1, 'Invalid search type');
+    assert(['NODE', 'VALUE', 'RANGE'].indexOf(type) !== -1, 'Invalid search type');
 
     var state = this._createLookupState(type, key);
 
@@ -194,25 +194,27 @@ Router.prototype.getContactByNodeID = function(nodeID) {
  * @returns {Object} Lookup state machine
  */
 Router.prototype._createLookupState = function(type, key) {
-  var state = {
-    type: type,
-    key: key,
-    hashedKey: utils.createID(key),
-    limit: constants.ALPHA,
-    previousClosestNode: null,
-    contacted: {},
-    foundValue: false,
-    value: null,
-    contactsWithoutValue: []
-  };
-  state.shortlist = this.getNearestContacts(
-    key,
-    state.limit,
-    this._self.nodeID
-  );
-  state.closestNode = state.shortlist[0];
+    var state = {
+        type: type,
+        key: key,
+        hashedKey: utils.createID(key),
+        limit: constants.ALPHA,
+        previousClosestNode: null,
+        contacted: {},
+        foundValue: false,
+        value: null,
+        contactsWithoutValue: []
+    };
 
-  return state;
+    state.shortlist = this.getNearestContacts(
+        key,
+        state.limit,
+        this._self.nodeID
+    );
+
+    state.closestNode = state.shortlist[0];
+
+    return state;
 };
 
 /**
@@ -269,28 +271,28 @@ Router.prototype._queryContact = function(state, contactInfo, callback) {
  * @param {Function} callback
  */
 Router.prototype._handleFindResult = function(state, msg, contact, callback) {
-  var distance = utils.getDistance(state.hashedKey, contact.nodeID);
+    var distance = utils.getDistance(state.hashedKey, contact.nodeID);
 
-  state.contacted[contact.nodeID] = this.updateContact(contact);
+    state.contacted[contact.nodeID] = this.updateContact(contact);
 
-  if (utils.compareKeys(distance, state.closestNodeDistance) === -1) {
-    state.previousClosestNode = state.closestNode;
-    state.closestNode = contact;
-    state.closestNodeDistance = distance;
-  }
+    if (utils.compareKeys(distance, state.closestNodeDistance) === -1) {
+        state.previousClosestNode = state.closestNode;
+        state.closestNode = contact;
+        state.closestNodeDistance = distance;
+    }
 
-  if (state.type === 'NODE') {
-    this._addToShortList(state, msg.result.nodes);
-    return callback();
-  }
+    if (state.type === 'NODE') {
+        this._addToShortList(state, msg.result.nodes);
+        return callback();
+    }
 
-  if (!msg.result.item) {
-    state.contactsWithoutValue.push(contact);
-    this._addToShortList(state, msg.result.nodes);
-    return callback();
-  }
+    if (!msg.result.item) {
+        state.contactsWithoutValue.push(contact);
+        this._addToShortList(state, msg.result.nodes);
+        return callback();
+    }
 
-  this._validateFindResult(state, msg, contact, callback);
+    this._validateFindResult(state, msg, contact, callback);
 };
 
 /**
@@ -302,28 +304,29 @@ Router.prototype._handleFindResult = function(state, msg, contact, callback) {
  * @param {Function} callback
  */
 Router.prototype._validateFindResult = function(state, msg, contact, done) {
-  var self = this;
-  var item = msg.result.item;
+    var self = this;
+    var item = msg.result.item;
 
-  function rejectContact() {
-    self._removeFromShortList(state, contact.nodeID);
-    self.removeContact(contact);
-    done();
-  }
+    function rejectContact() {
+        self._removeFromShortList(state, contact.nodeID);
+        self.removeContact(contact);
+        done();
+    }
 
-  this._log.debug('validating result from %s', contact.nodeID);
-  this._validateKeyValuePair(state.key, item.value, function(valid) {
+    this._log.debug('validating result from %s', contact.nodeID);
+    this._validateKeyValuePair(state.key, item.value, function(valid) {
     if (!valid) {
-      self._log.warn('failed to validate key/value pair for %s', state.key);
-      return rejectContact();
+        self._log.warn('failed to validate key/value pair for %s', state.key);
+        return rejectContact();
     }
 
     state.foundValue = true;
-    state.value = item.value;
-    state.item = item;
-    done();
-  });
+        state.value = item.value;
+        state.item = item;
+        done();
+    });
 };
+
 
 /**
  * Add contacts to the shortlist, preserving nodeID uniqueness
@@ -488,6 +491,24 @@ Router.prototype.findValue = function(key, callback) {
 
         //self._log.debug('found value for key %s', key);
 
+        callback(null, value);
+    });
+};
+
+
+
+Router.prototype.findRange = function (key, callback) {
+    var self = this;
+    
+    //this._log.debug('searching for value at key %s', key);
+    
+    this.lookup('RANGE', key, function (err, type, value) {
+        if (err || type === 'NODE') {
+            return callback(new Error('Failed to find value for key: ' + key));
+        }
+        
+        //self._log.debug('found value for key %s', key);
+        
         callback(null, value);
     });
 };

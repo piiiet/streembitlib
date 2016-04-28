@@ -148,16 +148,17 @@ Node.prototype.connect = function(contact, callback) {
     this._log.debug('entering overlay network via %j', seed);
 
     async.waterfall([
-    this._ensureTransportState.bind(this),
-    this._router.updateContact.bind(this._router, seed),
-    this._router.findNode.bind(this._router, this._self.nodeID),
-    this._router.refreshBucketsBeyondClosest.bind(this._router)
-    ], function(err) {
-    if (err) {
-    return done(err);
-    }
+            this._ensureTransportState.bind(this),
+            this._router.updateContact.bind(this._router, seed),
+            this._router.findNode.bind(this._router, this._self.nodeID),
+            this._router.refreshBucketsBeyondClosest.bind(this._router)
+        ], 
+        function (err) {
+            if (err) {
+                return done(err);
+            }
 
-    done(null, contact);
+        done(null, contact);
     });
 
     return this;
@@ -219,32 +220,35 @@ Node.prototype.put = function(key, value, callback) {
  * @param {Error|null} err - The error object, if any
  */
 
+
+
 /**
  * Get a value by it's key from the DHT
  * @param {String} key - Lookup key for the stored value
  * @param {Function} callback
  */
 Node.prototype.get = function(key, callback) {
-  var self = this;
+    var self = this;
 
-  this._log.debug('attempting to get value for key %s', key);
+    //this._log.debug('attempting to get value for key %s', key);
 
-  self._router.findValue(key, function(err, value) {
-    if (err) {
-      self._log.warn('failed to get value from peers, reason: %s', err.message);
-      self._log.info('checking local storage for items at key %s', key);
+    self._router.findValue(key, function(err, value) {
+        if (err) {
+            self._log.warn('failed to get value from peers, reason: %s', err.message);
+            self._log.debug('checking local storage for items at key %s', key);
 
-      return self._storage.get(key, function(err, item) {
-        if (!err && item) {
-          callback(null, JSON.parse(item).value);
-        } else {
-          callback(err);
+            return self._storage.get(key, function(err, item) {
+                if (!err && item) {
+                    callback(null, JSON.parse(item).value);
+                } 
+                else {
+                    callback(err);
+                }
+            });
         }
-      });
-    }
 
-    callback(null, value);
-  });
+        callback(null, value);
+    });
 };
 /**
  * This callback is called upon completion of {@link Node#get}
@@ -252,6 +256,23 @@ Node.prototype.get = function(key, callback) {
  * @param {Error|null} err - The error object, if any
  * @param {String} value - The value retrieved from the DHT
  */
+
+
+Node.prototype.get_range = function (key, callback) {
+    var self = this;
+    
+    this._log.debug('attempting to get range value for key %s', key);
+    
+    self._router.findRange(key, function (err, value) {
+        if (err) {
+            return callback(err);
+        }
+        
+        callback(null, value);
+    });
+};
+
+
 
 /**
  * Set a validated key/value pair in the DHT
@@ -382,7 +403,9 @@ Node.prototype._bindRPCMessageHandlers = function(options) {
     this._rpc.on('FIND_VALUE', this._handleFindValue.bind(this));
     this._rpc.on('CONTACT_SEEN', this._router.updateContact.bind(this._router));
     
-    this._rpc.on('MSGREQUEST', this.getStoredMessages.bind(this));
+    this._rpc.on('FIND_RANGE', this._handleFindRange.bind(this));
+    
+    //this._rpc.on('MSGREQUEST', this.getStoredMessages.bind(this));
     
     if (options.onPeerMessage && (typeof options.onPeerMessage == "function")) {
         this._rpc.on('PEERMSG', options.onPeerMessage.bind(this));
@@ -683,50 +706,91 @@ Node.prototype._handleFindValue = function(incomingMsg) {
     });
 };
 
-/**
- * Validates the set storage adapter
- * @private
- * @param {Object} storage
+/*
+ *  Returns a range of messages 
  */
-Node.prototype._setStorageAdapter = function(storage) {
-    assert(typeof storage === 'object', 'No storage adapter supplied');
-    assert(typeof storage.get === 'function', 'Store has no get method');
-    assert(typeof storage.put === 'function', 'Store has no put method');
-    assert(typeof storage.del === 'function', 'Store has no del method');
-    assert(typeof storage.createReadStream === 'function', 'Store has no createReadStream method' );
+Node.prototype._handleFindRange = function (incomingMsg) {
+    var node = this;
+    var params = incomingMsg.params;
+    var contact = this._rpc._createContact(params.contact);
+    var limit = constants.K;
+    var range_key = params.key;
+    
+    function sendFindRangeReply(msgitem) {
+        if (!msgitem) {
+            var notFoundMessage = new Message({
+                id: incomingMsg.id,
+                result: {
+                    nodes: node._router.getNearestContacts( range_key, limit,params.contact.nodeID ),
+                    contact: node._self
+                }
+            });
+            
+            return node._rpc.send(contact, notFoundMessage);
+        }
+        else {
+            var item = new Item(
+                range_key,
+                msgitem,
+                node._self.nodeID,
+                Date.now()
+            );
+            
+            //node._log.debug('found value, sending to %s', params.contact.nodeID);
+            
+            var foundMessage = new Message({
+                id: incomingMsg.id,
+                result: { item: item, contact: node._self }
+            });
+            
+            node._rpc.send(contact, foundMessage);
+        }
+    }
 
-    this._storage = storage;
+    this.getRangeMessages(range_key, function (err, count, messages) {
+        if (err) {
+            sendFindRangeReply(null);
+        }
+        else if (!count) {
+            sendFindRangeReply(null);
+        }
+        else if (!messages) {
+            sendFindRangeReply(null);
+        }
+        else {
+            var msgitem = {
+                count: count,
+                messages: messages
+            };
+            sendFindRangeReply(msgitem);
+        }
+    });
+
 };
 
-
-Node.prototype.getStoredMessages = function (account, msgkey, callback) {
+Node.prototype.getRangeMessages = function (range_key, callback) {
     try {
+        this._log.debug('getRangeMessages for %s', range_key);
+
         var self = this;
         var stream = this._storage.createReadStream();
-        
-        this._log.debug('getStoredMessages for %s', account);
         
         var count = 0;
         var messages = [];
         
         stream.on('data', function (data) {
-            if (typeof data.value === 'string') {
+            if (data && data.key && (typeof data.key === 'string') && data.value && (typeof data.value === 'string')) {
                 try {
-                    data.value = JSON.parse(data.value);
-                } 
-            catch (err) {
-                    return self._log.error('getStoredMessages failed to parse value');
-                }
-            }
-            
-            if (data.value.recipient && data.value.recipient == account) {
-                var keyitems = data.key.split("/");
-                if (keyitems && keyitems.length > 2 && keyitems[1] == "message") {
-                    // send only 50 messages
-                    if (messages.length < 50) {
-                        messages.push({ key: data.key, value: data.value.value });
+                    var value = JSON.parse(data.value);
+                    if (data.key.indexOf(range_key) > -1) {
+                        if (messages.length < 50) {
+                            messages.push({ key: data.key, value: value });
+                        }
+                        count++;
                     }
-                    count++;
+                } 
+                catch (err) {
+                    self._log.error('getRangeMessages error: %j', err);
                 }
             }
         });
@@ -741,7 +805,72 @@ Node.prototype.getStoredMessages = function (account, msgkey, callback) {
     }
     catch (err) {
         node._log.error('getStoredMessages error: %j', err);
+        callback(err.message ? err.message : err);
     }
+};
+
+
+
+
+//Node.prototype.getStoredMessages = function (account, msgkey, callback) {
+//    try {
+//        var self = this;
+//        var stream = this._storage.createReadStream();
+        
+//        this._log.debug('getStoredMessages for %s', account);
+        
+//        var count = 0;
+//        var messages = [];
+        
+//        stream.on('data', function (data) {
+//            if (typeof data.value === 'string') {
+//                try {
+//                    data.value = JSON.parse(data.value);
+//                } 
+//                catch (err) {
+//                    return self._log.error('getStoredMessages failed to parse value');
+//                }
+//            }
+            
+//            if (data.value.recipient && data.value.recipient == account) {
+//                var keyitems = data.key.split("/");
+//                if (keyitems && keyitems.length > 2 && keyitems[1] == "message") {
+//                    // send only 50 messages
+//                    if (messages.length < 50) {
+//                        messages.push({ key: data.key, value: data.value.value });
+//                    }
+//                    count++;
+//                }
+//            }
+//        });
+        
+//        stream.on('error', function (err) {
+//            callback(err.message ? err.message : err);
+//        });
+        
+//        stream.on('end', function () {
+//            callback(null, count, messages);
+//        });
+//    }
+//    catch (err) {
+//        node._log.error('getStoredMessages error: %j', err);
+//    }
+//};
+
+
+/**
+ * Validates the set storage adapter
+ * @private
+ * @param {Object} storage
+ */
+Node.prototype._setStorageAdapter = function(storage) {
+    assert(typeof storage === 'object', 'No storage adapter supplied');
+    assert(typeof storage.get === 'function', 'Store has no get method');
+    assert(typeof storage.put === 'function', 'Store has no put method');
+    assert(typeof storage.del === 'function', 'Store has no del method');
+    assert(typeof storage.createReadStream === 'function', 'Store has no createReadStream method' );
+
+    this._storage = storage;
 };
 
 

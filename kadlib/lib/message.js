@@ -53,28 +53,30 @@ var merge = require('merge');
  * @param {Error} spec.error - Error object to convert to message
  */
 function Message(spec) {
-  if (!(this instanceof Message)) {
-    return new Message(spec);
-  }
-
-  this.jsonrpc = '2.0';
-
-  if (Message.isRequest(spec)) {
-    this.id = spec.id || Message.createID();
-    this.method = spec.method;
-    this.params = spec.params;
-  } else if (Message.isResponse(spec)) {
-    this.id = spec.id;
-    this.result = merge({}, spec.result);
-    if (spec.error) {
-      this.error = {
-        code: -32603,
-        message: spec.error.message
-      };
+    if (!(this instanceof Message)) {
+        return new Message(spec);
     }
-  } else {
-    throw new Error('Invalid message specification');
-  }
+
+    this.jsonrpc = '2.0';
+
+    if (Message.isRequest(spec)) {
+        this.id = spec.id || Message.createID();
+        this.method = spec.method;
+        this.params = spec.params;
+    } 
+    else if (Message.isResponse(spec)) {
+        this.id = spec.id;
+        this.result = merge({}, spec.result);
+        if (spec.error) {
+            this.error = {
+            code: -32603,
+            message: spec.error.message
+            };
+        }
+    } 
+    else {
+        throw new Error('Invalid message specification');
+    }
 }
 
 /**
