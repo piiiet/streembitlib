@@ -488,7 +488,7 @@ Router.prototype.findValue = function(key, callback) {
 
     this.lookup('VALUE', key, function(err, type, value) {
         if (err || type === 'NODE') {
-            return callback(new Error('Failed to find value for key: ' + key));
+            return callback(new Error('error: 0x0100 key: ' + key + ' msg: Failed to find value for key'));
         }
 
         //self._log.debug('found value for key %s', key);
@@ -506,7 +506,7 @@ Router.prototype.findRange = function (key, callback) {
     
     this.lookup('RANGE', key, function (err, type, value) {
         if (err || type === 'NODE') {
-            return callback(new Error('Failed to find value for key: ' + key));
+            return callback(new Error('error: 0x0100 key: ' + key + ' msg: Failed to find value for range'));
         }
         
         //self._log.debug('found value for key %s', key);

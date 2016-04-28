@@ -733,8 +733,9 @@ Node.prototype._handleFindRange = function (incomingMsg) {
     }
 
     this.findRangeMessages(range_key, function (err, count, page, start, messages) {
-        if (err || !messages || !messages.lentgh ) {
+        if (err || !messages || !messages.lentgh) {
             sendFindRangeReply(null);
+            node._log.debug('findRangeMessages no messages for the range');
         }
         else {
             var msgitem = {
