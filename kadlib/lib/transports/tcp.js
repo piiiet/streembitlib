@@ -165,25 +165,8 @@ TCPTransport.prototype._handleConnection = function (connection) {
                         case "PEERMSG":
                             var addr = connection.remoteAddress;
                             var port = connection.remotePort;
-                            self.emit('PEERMSG', msgobj, { address: addr, port: port });
+                            self.emit('PEERMSG', parsed, { address: addr, port: port });
                             break;
-
-                        //case "MSGREQUEST":
-                        //    var account = msgobj.account;
-                        //    var msgkey = msgobj.msgkey;
-                            
-                        //    self.emit('MSGREQUEST', account, msgkey, function (err, count, msgs) {
-                        //        var reply = "";
-                        //        if (err) {
-                        //            reply = JSON.stringify({ error: err });
-                        //        }
-                        //        else {
-                        //            reply = JSON.stringify({ error: 0, count: count, messages: msgs });
-                        //        }
-                        //        connection.write(reply);
-                        //        connection.end();
-                        //    });
-                        //    break;
 
                         default:
                             handleInvalidMsg();
