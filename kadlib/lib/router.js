@@ -410,8 +410,8 @@ Router.prototype._handleValueReturned = function(state, callback) {
         return utils.compareKeys(a.distance, b.distance);
     });
 
-    if (distances.length >= 1) {
-        this._log.debug('_handleValueReturned STORE state %j', state);
+    if (distances.length >= 1 && state.type && state.type != "RANGE") {
+        this._log.debug('_handleValueReturned STORE state.type: %s', state.type);
         var item = state.item;
         var closestWithoutValue = distances[0].contact;
         var message = new Message(
