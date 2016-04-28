@@ -85,6 +85,10 @@ function Node(options) {
     if (options.expireHandler && typeof options.expireHandler == "function") {
         this.expireHandler = options.expireHandler;
     }
+    
+    if (options.findRangeMessages && typeof options.findRangeMessages == "function") {
+        this.findRangeMessages = options.findRangeMessages;
+    }
 
     this._log.info('node created with account: ' + this._self.account + ', nodeID: ' + this._self.nodeID + ', publickey: ' + this._self.public_key);
 }
@@ -522,29 +526,6 @@ Node.prototype._expire = function () {
         self._log.debug('local database cleanup complete');
     });
 
-
-  var self = this;
-  var stream = this._storage.createReadStream();
-
-  this._log.info('starting local database expiration');
-
-  stream.on('data', function(data) {
-    if (Date.now() <= data.value.timestamp + constants.T_EXPIRE) {
-      self._storage.del(data.key, function(err) {
-        if (err) {
-          self._log.error('failed to expire item at key %s', data.key);
-        }
-      });
-    }
-  });
-
-  stream.on('error', function(err) {
-    self._log.error('error while expiring: %s', err.message);
-  });
-
-  stream.on('end', function() {
-    self._log.info('database expiration complete');
-  });
 };
 
 /**
@@ -746,21 +727,21 @@ Node.prototype._handleFindRange = function (incomingMsg) {
             node._rpc.send(contact, foundMessage);
         }
     }
+    
+    if (!this.findRangeMessages) {
+        sendFindRangeReply(null);
+    }
 
-    this.getRangeMessages(range_key, function (err, count, messages) {
-        if (err) {
-            sendFindRangeReply(null);
-        }
-        else if (!count) {
-            sendFindRangeReply(null);
-        }
-        else if (!messages) {
+    this.findRangeMessages(range_key, function (err, count, page, start, messages) {
+        if (err || !messages || messages.lentgh == 0) {
             sendFindRangeReply(null);
         }
         else {
             var msgitem = {
-                count: count,
-                messages: messages
+                count: count > 0 ? count : 0,
+                page: page > 0 ? page : 0,
+                start: start > 0 ? start : 0,
+                messages: messages || []
             };
             sendFindRangeReply(msgitem);
         }
@@ -768,96 +749,6 @@ Node.prototype._handleFindRange = function (incomingMsg) {
 
 };
 
-Node.prototype.getRangeMessages = function (range_key, callback) {
-    try {
-        this._log.debug('getRangeMessages for %s', range_key);
-
-        var self = this;
-        var stream = this._storage.createReadStream();
-        
-        var count = 0;
-        var messages = [];
-        
-        stream.on('data', function (data) {
-            if (data && data.key && (typeof data.key === 'string') && data.value && (typeof data.value === 'string')) {
-                try {
-                    if (data.key.indexOf(range_key) > -1) {
-                        var jsonobj = JSON.parse(data.value);
-                        if (jsonobj.value) {
-                            if (messages.length < 50) {
-                                messages.push({ key: data.key, value: jsonobj.value });
-                            }
-                            count++;
-                        }
-                    }
-                } 
-                catch (err) {
-                    self._log.error('getRangeMessages error: %j', err);
-                }
-            }
-        });
-        
-        stream.on('error', function (err) {
-            callback(err.message ? err.message : err);
-        });
-        
-        stream.on('end', function () {
-            callback(null, count, messages);
-        });
-    }
-    catch (err) {
-        node._log.error('getStoredMessages error: %j', err);
-        callback(err.message ? err.message : err);
-    }
-};
-
-
-
-
-//Node.prototype.getStoredMessages = function (account, msgkey, callback) {
-//    try {
-//        var self = this;
-//        var stream = this._storage.createReadStream();
-        
-//        this._log.debug('getStoredMessages for %s', account);
-        
-//        var count = 0;
-//        var messages = [];
-        
-//        stream.on('data', function (data) {
-//            if (typeof data.value === 'string') {
-//                try {
-//                    data.value = JSON.parse(data.value);
-//                } 
-//                catch (err) {
-//                    return self._log.error('getStoredMessages failed to parse value');
-//                }
-//            }
-            
-//            if (data.value.recipient && data.value.recipient == account) {
-//                var keyitems = data.key.split("/");
-//                if (keyitems && keyitems.length > 2 && keyitems[1] == "message") {
-//                    // send only 50 messages
-//                    if (messages.length < 50) {
-//                        messages.push({ key: data.key, value: data.value.value });
-//                    }
-//                    count++;
-//                }
-//            }
-//        });
-        
-//        stream.on('error', function (err) {
-//            callback(err.message ? err.message : err);
-//        });
-        
-//        stream.on('end', function () {
-//            callback(null, count, messages);
-//        });
-//    }
-//    catch (err) {
-//        node._log.error('getStoredMessages error: %j', err);
-//    }
-//};
 
 
 /**
