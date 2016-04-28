@@ -247,7 +247,7 @@ Node.prototype.get = function(key, callback) {
                 } 
                 else {
                     self._log.error('storage.get error: %j', err);
-                    callback('error: 0x0100 msg: Item not exists.');
+                    callback(new Error('error: 0x0100 msg: Item not exists.'));
                 }
             });
         }
