@@ -246,7 +246,7 @@ Node.prototype.get = function(key, callback) {
                     callback(null, JSON.parse(item).value);
                 } 
                 else {
-                    self._log.error('storage.get error: %j', err);
+                    self._log.warn('storage.get: %j', err);
                     callback(new Error('error: 0x0100 msg: Item not exists.'));
                 }
             });
@@ -734,16 +734,16 @@ Node.prototype._handleFindRange = function (incomingMsg) {
     }
 
     this.findRangeMessages(range_key, function (err, count, page, start, messages) {
-        if (err || !messages || !messages.lentgh) {
+        if (err || !messages || !Array.isArray(messages) || !messages.length || isNaN(count) || isNaN(page) || isNaN(start)) {
             sendFindRangeReply(null);
             node._log.debug('findRangeMessages no messages for the range');
         }
         else {
             var msgitem = {
-                count: count > 0 ? count : 0,
-                page: page > 0 ? page : 0,
-                start: start > 0 ? start : 0,
-                messages: messages || []
+                count: count,
+                page: page,
+                start: start,
+                messages: messages
             };
             sendFindRangeReply(msgitem);
         }
