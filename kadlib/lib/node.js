@@ -781,12 +781,14 @@ Node.prototype.getRangeMessages = function (range_key, callback) {
         stream.on('data', function (data) {
             if (data && data.key && (typeof data.key === 'string') && data.value && (typeof data.value === 'string')) {
                 try {
-                    var value = JSON.parse(data.value);
                     if (data.key.indexOf(range_key) > -1) {
-                        if (messages.length < 50) {
-                            messages.push({ key: data.key, value: value });
+                        var jsonobj = JSON.parse(data.value);
+                        if (jsonobj.value) {
+                            if (messages.length < 50) {
+                                messages.push({ key: data.key, value: jsonobj.value });
+                            }
+                            count++;
                         }
-                        count++;
                     }
                 } 
                 catch (err) {
