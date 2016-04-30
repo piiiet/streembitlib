@@ -1,5 +1,5 @@
 /*
-
+ 
 This file is part of Streembit application. 
 Streembit is an open source project to create a real time communication system for humans and machines. 
 
@@ -16,10 +16,16 @@ If not, see http://www.gnu.org/licenses/.
 Author: Tibor Zsolt Pardi 
 Copyright (C) 2016 The Streembit software development team
 -------------------------------------------------------------------------------------------------------------------------
-
-This source file is based on https://github.com/gordonwritescode  
-
+  
 */
+
+/**
+ * Implementation is based on https://github.com/kadtools/kad 
+ * Huge thank you for Gordon Hall https://github.com/gordonwritescode the author of kad library!
+ * @module kad
+ * @license GPL-3.0
+ * @author Gordon Hall gordon@gordonwritescode.com
+ */
 
 'use strict';
 
@@ -28,46 +34,44 @@ var Contact = require('../contact');
 var inherits = require('util').inherits;
 var utils = require('../utils');
 
+/**
+ * Represent a contact (or peer)
+ * @constructor
+ * @extends {Contact}
+ * @param {Object} options
+ * @param {String} options.address - IP or hostname
+ * @param {Number} options.port - Listening port
+ */
+function AddressPortContact(options) {
+  if (!(this instanceof AddressPortContact)) {
+    return new AddressPortContact(options);
+  }
+
+  assert(typeof options === 'object', 'Invalid options were supplied');
+  assert(typeof options.address === 'string', 'Invalid address was supplied');
+  assert(typeof options.port === 'number', 'Invalid port was supplied');
+
+  this.address = options.address;
+  this.port = options.port;
+
+  Contact.call(this, options);
+}
+
 inherits(AddressPortContact, Contact);
 
 /**
-* Represent a contact (or peer)
-* @constructor
-* @param {object} options
-*/
-function AddressPortContact(options) {
-
-    if (!(this instanceof AddressPortContact)) {
-        return new AddressPortContact(options);
-    }
-
-    assert(typeof options == "object", 'Invalid options were supplied');
-    assert(typeof options.address === 'string', 'Invalid address was supplied');
-    assert(typeof options.port === 'number', 'Invalid port was supplied');
-    assert(typeof options.account === 'string', 'Invalid account was supplied');
-
-    this.address = options.address;
-    this.port = options.port;
-    this.account = options.account;
-
-    Contact.call(this, options)
-}
-
-
-/**
-* Generate a NodeID by taking the SHA1 hash of the account
-* #_createNodeID
+* Generate a NodeID by taking the SHA1 hash of the address and port
+* @private
 */
 AddressPortContact.prototype._createNodeID = function() {
-    return utils.createID(this.account); 
+  return utils.createID(this.toString());
 };
 
 /**
 * Generate a user-friendly string for the contact
-* #_toString
 */
 AddressPortContact.prototype.toString = function() {
-    return this.address + ':' + this.port;
+  return this.address + ':' + this.port;
 };
 
 module.exports = AddressPortContact;

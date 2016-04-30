@@ -1,5 +1,5 @@
 /*
-
+ 
 This file is part of Streembit application. 
 Streembit is an open source project to create a real time communication system for humans and machines. 
 
@@ -16,44 +16,36 @@ If not, see http://www.gnu.org/licenses/.
 Author: Tibor Zsolt Pardi 
 Copyright (C) 2016 The Streembit software development team
 -------------------------------------------------------------------------------------------------------------------------
-
-This source file is based on https://github.com/gordonwritescode  
-
+  
 */
+
+/**
+ * Implementation is based on https://github.com/kadtools/kad 
+ * Huge thank you for Gordon Hall https://github.com/gordonwritescode the author of kad library!
+ * @module kad
+ * @license GPL-3.0
+ * @author Gordon Hall gordon@gordonwritescode.com
+ */
 
 
 'use strict';
 
 var assert = require('assert');
-var constants = require('./constants');
-var merge = require('merge');
-var Contact = require('./contact');
 
 /**
-* Represents a message to be sent over RPC
-* @constructor
-* @param {string} type
-* @param {object} params
-* @param {object} fromContact
-*/
-function Message(type, params, fromContact) {
-    if (!(this instanceof Message)) {
-        return new Message(type, params, fromContact);
+ * Factory for whitelist middleware
+ * @function
+ * @param {Array} whitelist - list of nodeID's to allow
+ * @returns {Function}
+ */
+module.exports = function WhitelistFactory(whitelist) {
+  assert(Array.isArray(whitelist), 'Invalid whitelist supplied');
+
+  return function whitelister(message, contact, next) {
+    if (whitelist.indexOf(contact.nodeID) === -1) {
+      return next(new Error('Contact is not in the whitelist'));
     }
 
-    assert(constants.MESSAGE_TYPES.indexOf(type) !== -1, 'Invalid message type');
-    assert(fromContact instanceof Contact, 'Invalid contact supplied');
-
-    this.type = type;
-    this.params = merge(params, fromContact);
-}
-
-/**
-* Serialize message to a Buffer
-* #serialize
-*/
-Message.prototype.serialize = function() {
-    return new Buffer(JSON.stringify(this), 'utf8');
+    next();
+  };
 };
-
-module.exports = Message;

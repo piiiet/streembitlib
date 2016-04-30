@@ -1,5 +1,5 @@
 /*
-
+ 
 This file is part of Streembit application. 
 Streembit is an open source project to create a real time communication system for humans and machines. 
 
@@ -16,55 +16,40 @@ If not, see http://www.gnu.org/licenses/.
 Author: Tibor Zsolt Pardi 
 Copyright (C) 2016 The Streembit software development team
 -------------------------------------------------------------------------------------------------------------------------
-
-This source file is based on https://github.com/gordonwritescode  
-
+  
 */
 
+
+/**
+ * Implementation is based on https://github.com/kadtools/kad 
+ * Huge thank you for Gordon Hall https://github.com/gordonwritescode the author of kad library!
+ * @module kad
+ * @license GPL-3.0
+ * @author Gordon Hall gordon@gordonwritescode.com
+ */
 
 'use strict';
 
-var ms = require('ms');
-
-/**
-* Protocol constants
-* #exports
-* @see http://xlattice.sourceforge.net/components/protocol/kademlia/specs.html#constants
-*/
 module.exports = {
-    
-    ALPHA: 3,
-    B: 160,
-    K: 20,
-    
-    // TODO make these configurable
-    T_REFRESH: ms('86300s'),
-    T_REPLICATE: ms('86300s'),  
-    T_REPUBLISH: ms('86300s'),
-    T_EXPIRE: ms('86400s'),   // must be bigger than the replicate so the to be delete keys can be replicated before their delete
-    
-    T_OFFLMSGREP: 5000,
-    
-    // TODO make this configurable
-    T_MSG_EXPIRE: ms('259200s'), // 72 hours of message expiry
-    
-    // TODO make this configurable
-    T_ITEM_EXPIRE: ms('86460s'), // 24 hours of item expiry
-    
-    T_RESPONSETIMEOUT: ms('5s'),
-    
-    T_MAINTAIN_INTERVAL: 120000,     
-   
-    MESSAGE_TYPES: [
-        'PING',
-        'PONG',
-        'STORE',
-        'STORE_REPLY',
-        'FIND_NODE',
-        'FIND_NODE_REPLY',
-        'FIND_VALUE',
-        'FIND_VALUE_REPLY',
-        'PEERMSG'
-    ]
-
+  /**
+   * Creates a blacklist filter for rejecting messages from defined nodeIDs
+   * @function
+   * @param {Array} nodeIDs - List of nodeIDs to blacklist
+   * @returns {Function}
+   */
+  blacklist: require('./blacklist'),
+  /**
+   * Creates a whitelist filter for accepting messages from defined nodeIDs
+   * @function
+   * @param {Array} nodeIDs - List of nodeIDs to whitelist
+   * @returns {Function}
+   */
+  whitelist: require('./whitelist'),
+  /**
+   * Allows the definition of method handlers not defined by kademlia
+   * @function
+   * @param {Object} protocol - Hash map of <method_name>:<handler_function>
+   * @returns {Function}
+   */
+  protocol: require('./protocol')
 };

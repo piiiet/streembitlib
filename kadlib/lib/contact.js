@@ -1,5 +1,5 @@
 /*
-
+ 
 This file is part of Streembit application. 
 Streembit is an open source project to create a real time communication system for humans and machines. 
 
@@ -16,10 +16,16 @@ If not, see http://www.gnu.org/licenses/.
 Author: Tibor Zsolt Pardi 
 Copyright (C) 2016 The Streembit software development team
 -------------------------------------------------------------------------------------------------------------------------
-
-This source file is based on https://github.com/gordonwritescode  
-
+  
 */
+
+/**
+ * Implementation is based on https://github.com/kadtools/kad 
+ * Huge thank you for Gordon Hall https://github.com/gordonwritescode the author of kad library!
+ * @module kad
+ * @license GPL-3.0
+ * @author Gordon Hall gordon@gordonwritescode.com
+ */
 
 
 'use strict';
@@ -28,23 +34,25 @@ var assert = require('assert');
 var utils = require('./utils');
 
 /**
-* Represent a contact (or peer)
-* @constructor
-* @param {object} options
-*/
+ * The base class from which custom contacts inherit; used by the included
+ * {@link AddressPortContact}. Nodes provide each other with contact
+ * information which indicates how others should communicate with them.
+ * @constructor
+ * @param {Object} options
+ * @param {String} options.nodeID - Optional known 160 bit node ID
+ */
 function Contact(options) {
+    if (!(this instanceof Contact)) {
+        return new Contact(options);
+    }
 
-    assert(this instanceof Contact, 'Invalid instance was supplied');
-    assert(typeof options == "object", 'Invalid options were supplied');
+    assert(typeof options === 'object', 'Invalid options were supplied');
 
-    Object.defineProperty(
-        this, 
-        'nodeID', {
-            value: options.nodeID || this._createNodeID(),
-            configurable: false,
-            enumerable: true
-        }
-    );
+    Object.defineProperty(this, 'nodeID', {
+        value: options.nodeID || this._createNodeID(),
+        configurable: false,
+        enumerable: true
+    });
 
     assert(utils.isValidKey(this.nodeID), 'Invalid nodeID was supplied');
 
@@ -52,20 +60,19 @@ function Contact(options) {
 }
 
 /**
-* Updates the lastSeen property to right now
-* #seen
-*/
+ * Updates the lastSeen property to right now
+ */
 Contact.prototype.seen = function() {
-    this.lastSeen = Date.now();
+  this.lastSeen = Date.now();
 };
 
-/* istanbul ignore next */
 /**
-* Unimplemented stub, called when no nodeID is passed to constructor.
-* #_createNodeID
-*/
+ * Unimplemented stub, called when no nodeID is passed to constructor.
+ * @private
+ * @abstract
+ */
 Contact.prototype._createNodeID = function() {
-    throw new Error('Method not implemented');
+  throw new Error('Method not implemented');
 };
 
 module.exports = Contact;

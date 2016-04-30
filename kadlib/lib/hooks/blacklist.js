@@ -1,5 +1,5 @@
 /*
-
+ 
 This file is part of Streembit application. 
 Streembit is an open source project to create a real time communication system for humans and machines. 
 
@@ -16,32 +16,36 @@ If not, see http://www.gnu.org/licenses/.
 Author: Tibor Zsolt Pardi 
 Copyright (C) 2016 The Streembit software development team
 -------------------------------------------------------------------------------------------------------------------------
-
-This source file is based on https://github.com/gordonwritescode  
-
+  
 */
+
+
+/**
+ * Implementation is based on https://github.com/kadtools/kad 
+ * Huge thank you for Gordon Hall https://github.com/gordonwritescode the author of kad library!
+ * @module kad
+ * @license GPL-3.0
+ * @author Gordon Hall gordon@gordonwritescode.com
+ */
+
 
 'use strict';
 
 var assert = require('assert');
-var async = require('async');
-var Node = require('./lib/node');
 
 /**
-* Creates a new K-Node and returns it
-* #createNode
-* @param {object} options
-* @param {function} onConnect
-*/
-module.exports = function createNode(options) {
-    return new Node(options);
-};
+ * Factory for blacklist middleware
+ * @param {Array} blacklist - array of nodeID's to ban
+ * @returns {Function}
+ */
+module.exports = function BlacklistFactory(blacklist) {
+  assert(Array.isArray(blacklist), 'Invalid blacklist supplied');
 
-module.exports.Bucket = require('./lib/bucket');
-module.exports.Contact = require('./lib/contact');
-module.exports.Message = require('./lib/message');
-module.exports.Node = require('./lib/node');
-module.exports.Router = require('./lib/router');
-module.exports.transports = require('./lib/transports');
-module.exports.utils = require('./lib/utils');
-module.exports.constants = require('./lib/constants');
+  return function blacklister(message, contact, next) {
+    if (blacklist.indexOf(contact.nodeID) !== -1) {
+      return next(new Error('Contact is in the blacklist'));
+    }
+
+    next();
+  };
+};

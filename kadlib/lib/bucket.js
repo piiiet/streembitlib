@@ -1,5 +1,5 @@
 /*
-
+ 
 This file is part of Streembit application. 
 Streembit is an open source project to create a real time communication system for humans and machines. 
 
@@ -16,10 +16,16 @@ If not, see http://www.gnu.org/licenses/.
 Author: Tibor Zsolt Pardi 
 Copyright (C) 2016 The Streembit software development team
 -------------------------------------------------------------------------------------------------------------------------
-
-This source file is based on https://github.com/gordonwritescode  
-
+  
 */
+
+/**
+ * Implementation is based on https://github.com/kadtools/kad 
+ * Huge thank you for Gordon Hall https://github.com/gordonwritescode the author of kad library!
+ * @module kad
+ * @license GPL-3.0
+ * @author Gordon Hall gordon@gordonwritescode.com
+ */
 
 
 'use strict';
@@ -30,7 +36,8 @@ var constants = require('./constants');
 var Contact = require('./contact');
 
 /**
-* Represents a contact bucket
+* A bucket is a "column" of the routing table. It is an array-like object that
+* holds {@link Contact}s.
 * @constructor
 */
 function Bucket() {
@@ -42,58 +49,58 @@ function Bucket() {
 }
 
 /**
-* Return the number of contacts in this bucket
-* #getSize
-*/
+ * Return the number of contacts in this bucket
+ * @returns {Number}
+ */
 Bucket.prototype.getSize = function() {
   return this._contacts.length;
 };
 
 /**
-* Return the list of contacts in this bucket
-* #getContactList
-*/
+ * Return the list of contacts in this bucket
+ * @returns {Array}
+ */
 Bucket.prototype.getContactList = function() {
   return _.clone(this._contacts);
 };
 
 /**
-* Return the contact at the given index
-* #getContact
-* @param {number} index
-*/
+ * Return the contact at the given index
+ * @param {Number} index - Index of contact in bucket
+ * @returns {Contact|null}
+ */
 Bucket.prototype.getContact = function(index) {
   assert(index >= 0, 'Contact index cannot be negative');
-  assert(index < constants.B, 'Contact index cannot be greater than `B`');
+  assert(index < constants.K, 'Contact index cannot be greater than K');
 
   return this._contacts[index] || null;
 };
 
 /**
-* Adds the contact to the bucket
-* #addContact
-* @param {object} contact
-*/
+ * Adds the contact to the bucket
+ * @param {Contact} contact - Contact instance to add to bucket
+ * @returns {Bucket}
+ */
 Bucket.prototype.addContact = function(contact) {
-    assert(contact instanceof Contact, 'Invalid contact supplied');
-    assert(this.getSize() < constants.K, 'Bucket size cannot exceed K');
+  assert(contact instanceof Contact, 'Invalid contact supplied');
+  assert(this.getSize() < constants.K, 'Bucket size cannot exceed K');
 
-    if (!this.hasContact(contact.nodeID)) {
-        var index = _.sortedIndex(this._contacts, contact, function(contact) {
-            return contact.lastSeen;
-        });
+  if (!this.hasContact(contact.nodeID)) {
+    var index = _.sortedIndex(this._contacts, contact, function(contact) {
+      return contact.lastSeen;
+    });
 
-        this._contacts.splice(index, 0, contact);
-    }
+    this._contacts.splice(index, 0, contact);
+  }
 
-    return this;
+  return this;
 };
 
 /**
-* Removes the contact from the bucket
-* #removeContact
-* @param {object} contact
-*/
+ * Removes the contact from the bucket
+ * @param {Contact} contact - Contact instance to remove from bucket
+ * @returns {Bucket}
+ */
 Bucket.prototype.removeContact = function(contact) {
   var index = this.indexOf(contact);
 
@@ -105,10 +112,10 @@ Bucket.prototype.removeContact = function(contact) {
 };
 
 /**
-* Returns boolean indicating that the nodeID is contained in the bucket
-* #hasContact
-* @param {string} nodeID
-*/
+ * Returns boolean indicating that the nodeID is contained in the bucket
+ * @param {String} nodeID - 160 bit node ID
+ * @returns {Boolean}
+ */
 Bucket.prototype.hasContact = function(nodeID) {
   for (var i = 0; i < this.getSize(); i++) {
     if (this._contacts[i].nodeID === nodeID) {
@@ -120,20 +127,20 @@ Bucket.prototype.hasContact = function(nodeID) {
 };
 
 /**
-* Returns the index of the given contact
-* #indexOf
-* @param {object} contact
-*/
+ * Returns the index of the given contact
+ * @param {Contact} contact - Contact instance for index check
+ * @returns {Number}
+ */
 Bucket.prototype.indexOf = function(contact) {
-    assert(contact instanceof Contact, 'Invalid contact supplied');
+  assert(contact instanceof Contact, 'Invalid contact supplied');
 
-    for (var i = 0; i < this.getSize(); i++) {
-        if (this.getContact(i).nodeID === contact.nodeID) {
-            return i;
-        }
+  for (var i = 0; i < this.getSize(); i++) {
+    if (this.getContact(i).nodeID === contact.nodeID) {
+      return i;
     }
+  }
 
-    return -1;
+  return -1;
 };
 
 module.exports = Bucket;
