@@ -100,7 +100,7 @@ module.exports.create = function (options, callback) {
                         result.error = err;
                         return done(null, result);
                     }
-                        
+
                     var contact = peer._rpc._createContact(seed);
                     peer._router.findNode(contact.nodeID, function (err) {
                         result.error = err;

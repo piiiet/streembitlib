@@ -67,12 +67,16 @@ function Router(options) {
     this._rpc = options.transport;
     this._self = this._rpc._contact;
     this._validator = options.validator;
+    this.inactiveContacts = {};
 
     Object.defineProperty(this, 'length', {
         get: this._getSize.bind(this),
         enumerable: false,
         configurable: false
     });
+    
+    // start the maintanance thread
+    this.maintainer();
 }
 
 /**
@@ -100,6 +104,96 @@ function Router(options) {
  */
 
 inherits(Router, events.EventEmitter);
+
+
+Router.prototype.maintainer = function () {
+    var self = this;
+
+    setInterval(
+        function () {
+            try {
+                //  maintain the inactiveContacts list   
+                var currtime = Date.now();
+                var removables = [];
+                for (var nodeId in self.inactiveContacts) {
+                    var contact = self.inactiveContacts[nodeId];
+                    var addtime = contact.addtime || 0;
+                    var diff = currtime - addtime;
+                    if (diff > 90000) { // remove after 90 seconds
+                        removables.push(nodeId);
+                    }
+                }
+                
+                for (var i = 0; i < removables.length; i++) {
+                    this._log.debug('remove inactive contact ' + removables[i]);
+                    delete self.inactiveContacts[removables[i]];
+                }
+                
+                // validate the contacts
+                self.validate_contacts();
+            }
+            catch (err) {
+                self._log.error("maintainer error: %j", err);
+            }
+        },
+        30000
+    );
+}
+
+Router.prototype.validate_contacts = function () {
+
+    var self = this;
+    
+    try {
+        var pingProc = function (bucket, contacts) {
+            async.each(
+                contacts, 
+                function (contact, callback) {
+                    try {
+                        //self._log.debug('maintain PING to %s', contact.account);                        
+                        var ping = new Message({ method: 'PING', params: { contact: self._self } });
+                        self._rpc.send(contact, ping, function (err) {
+                            if (err) {
+                                self._log.debug('PING failed. maintain thread removes inactive contact %s from bucket', contact.account);
+                                bucket.removeContact(contact);
+                            }
+                            
+                            callback();
+                        });
+                    }
+                    catch (e) {
+                        self._log.error('validate_contacts PING error: %j', e);
+                    }
+                }, 
+                function (err) {
+                    if (err) {
+                        self._log.error('validate_contacts PING error: %j', err);
+                    }
+                }
+            );
+        }
+        
+        for (var prop in this._buckets) {
+            var bucket = this._buckets[prop];
+            var contacts = bucket.getContactList();
+            
+            //this._log.debug('bucket[' + prop + '] contacts: %j', contacts);
+            // ping to the contact to check if it is online
+            pingProc(bucket, contacts);
+        }
+    }
+    catch (err) {
+        self._log.error("validate_contacts error: %j", err);
+    }
+};
+
+
+Router.prototype.registerInactive = function (contact) {
+    this._log.debug('register inactive contact ' + contact.account);
+    contact.addtime = Date.now();
+    this.inactiveContacts[contact.nodeID] = contact;
+}
+
 
 /**
  * Execute this router's find operation with the shortlist
@@ -249,10 +343,11 @@ Router.prototype._queryContact = function(state, contactInfo, callback) {
         params: { key: state.key, contact: this._self }
     });
 
-    this._log.debug('querying ' + contact.nodeID + ' for key: ' + state.key);
+    this._log.debug('querying ' + contact.nodeID + ', account: ' + contact.account + ' for key: ' + state.key);
     this._rpc.send(contact, message, function(err, response) {
         if (err) {
-            self._log.warn('query failed, removing contact for shortlist, reason %s', err.message);
+            self._log.warn('query failed, removing contact: ' + contact.account + ' from shortlist, reason: ' + err.message);
+            self.registerInactive(contact);
             self._removeFromShortList(state, contact.nodeID);
             self.removeContact(contact);
             return callback();
@@ -358,21 +453,40 @@ Router.prototype._removeFromShortList = function(state, nodeID) {
  * @param {Object} state - State machine returned from _createLookupState()
  * @param {Function} callback
  */
-Router.prototype._handleQueryResults = function(state, callback) {
+Router.prototype._handleQueryResults = function (state, callback) {
+    var self = this;
+    
     if (state.foundValue) {
         //this._log.debug('a value was returned from query %s', state.key);
         return this._handleValueReturned(state, callback);
     }
-
+    
     var closestNodeUnchanged = state.closestNode === state.previousClosestNode;
     var shortlistFull = state.shortlist.length >= constants.K;
-
+    
     if (closestNodeUnchanged || shortlistFull) {
         //this._log.debug('shortlist is full or there are no known nodes closer to key %s', state.key);
         return callback(null, 'NODE', state.shortlist);
     }
+    
+    function findInactive(contact) {
+        var inactive = false;
+        for (var nodeID in self.inactiveContacts) {
+            if (nodeID == contact.nodeID && self.inactiveContacts[nodeID]) {
+                inactive = true;
+            }
+        }
+        return inactive;
+    }
+    
+    var activeContacts = _.reject(state.shortlist, function (c) {
+        var inactive = findInactive(c);
+        if (inactive) {
+            return c;
+        }
+    });
 
-    var remainingContacts = _.reject(state.shortlist, function(c) {
+    var remainingContacts = _.reject(activeContacts, function(c) {
         return state.contacted[c.nodeID];
     });
 
@@ -559,7 +673,7 @@ Router.prototype.findNode = function(nodeID, callback) {
 Router.prototype.updateContact = function (contact, callback) {
     try {
         if (this._self.nodeID == contact.nodeID) {
-            this._log.warn('updateContact: own contact update is not processed');
+            this._log.warn('updateContact: contact cannot be its own');
             return;
         }
         
@@ -681,41 +795,58 @@ Router.prototype._pingContactAtHead = function(contact, bucket, callback) {
  * @returns {Array}
  */
 Router.prototype.getNearestContacts = function(key, limit, nodeID) {
-  var self = this;
-  var contacts = [];
-  var index = utils.getBucketIndex(this._self.nodeID, utils.createID(key));
-  var ascBucketIndex = index;
-  var descBucketIndex = index;
+    var self = this;
+    var contacts = [];
+    var index = utils.getBucketIndex(this._self.nodeID, utils.createID(key));
+    var ascBucketIndex = index;
+    var descBucketIndex = index;
+    
+    function findInactive(contact) {
+        var inactive = false;
+        for (var nodeID in self.inactiveContacts) {
+            if (nodeID == contact.nodeID) {
+                inactive = true;
+            }
+        }
+        return inactive;
+    }
 
-  function addNearestFromBucket(bucket) {
-    self._getNearestFromBucket(
-      bucket,
-      utils.createID(key),
-      limit - contacts.length
-    ).forEach(function addToContacts(contact) {
-      var isContact = contact instanceof Contact;
-      var poolNotFull = contacts.length < limit;
-      var notRequester = contact.nodeID !== nodeID;
+    function addNearestFromBucket(bucket) {
+        self._getNearestFromBucket(
+            bucket,
+            utils.createID(key),
+            limit - contacts.length
+        ).forEach(
+            function addToContacts(contact) {
+                var isContact = contact instanceof Contact;
+                var poolNotFull = contacts.length < limit;
+                var notRequester = contact.nodeID !== nodeID;
+                var isinactive = findInactive(contact);
+                
+                if (isinactive) {
+                    this._log.debug('inactive contact ' + contact.account + ' detected');   
+                }
+                
+                if (isContact && poolNotFull && notRequester && !isinactive) {
+                    contacts.push(contact);
+                }
+            }
+        );
+    }
 
-      if (isContact && poolNotFull && notRequester) {
-        contacts.push(contact);
-      }
-    });
-  }
+    addNearestFromBucket(this._buckets[index]);
 
-  addNearestFromBucket(this._buckets[index]);
+    while (contacts.length < limit && ascBucketIndex < constants.B) {
+        ascBucketIndex++;
+        addNearestFromBucket(this._buckets[ascBucketIndex]);
+    }
 
-  while (contacts.length < limit && ascBucketIndex < constants.B) {
-    ascBucketIndex++;
-    addNearestFromBucket(this._buckets[ascBucketIndex]);
-  }
+    while (contacts.length < limit && descBucketIndex >= 0) {
+        descBucketIndex--;
+        addNearestFromBucket(this._buckets[descBucketIndex]);
+    }
 
-  while (contacts.length < limit && descBucketIndex >= 0) {
-    descBucketIndex--;
-    addNearestFromBucket(this._buckets[descBucketIndex]);
-  }
-
-  return contacts;
+    return contacts;
 };
 
 /**
@@ -727,22 +858,23 @@ Router.prototype.getNearestContacts = function(key, limit, nodeID) {
  * @returns {Array}
  */
 Router.prototype._getNearestFromBucket = function(bucket, key, limit) {
-  if (!bucket) {
-    return [];
-  }
+    if (!bucket) {
+        return [];
+    }
 
-  var nearest = bucket.getContactList().map(function addDistance(contact) {
-    return {
-      contact: contact,
-      distance: utils.getDistance(contact.nodeID, key)
-    };
-  }).sort(function sortKeysByDistance(a, b) {
-    return utils.compareKeys(a.distance, b.distance);
-  }).splice(0, limit).map(function pluckContact(c) {
-    return c.contact;
-  });
+    var nearest = bucket.getContactList().map(function addDistance(contact) {
+        return {
+            contact: contact,
+            distance: utils.getDistance(contact.nodeID, key)
+        };
 
-  return nearest;
+    }).sort(function sortKeysByDistance(a, b) {
+        return utils.compareKeys(a.distance, b.distance);
+    }).splice(0, limit).map(function pluckContact(c) {
+        return c.contact;
+    });
+
+    return nearest;
 };
 
 /**
@@ -753,11 +885,11 @@ Router.prototype._getNearestFromBucket = function(bucket, key, limit) {
  * @param {Function} callback
  */
 Router.prototype._validateKeyValuePair = function(key, value, callback) {
-  if (typeof this._validator === 'function') {
-    return this._validator(key, value, callback);
-  }
+    if (typeof this._validator === 'function') {
+        return this._validator(key, value, callback);
+    }
 
-  callback(true);
+    callback(true);
 };
 
 module.exports = Router;

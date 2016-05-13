@@ -205,19 +205,21 @@ Node.prototype.disconnect = function(callback) {
  * @param {Node~putCallback} callback - Executed upon completion
  */
 Node.prototype.put = function(key, value, callback) {
-  var node = this;
+    var node = this;
 
-  this._log.debug('attempting to set value for key %s', key);
+    this._log.debug('attempting to set value for key %s', key);
 
-  this._validateKeyValuePair(key, value, function(valid) {
-    if (!valid) {
-      node._log.warn('failed to validate key/value pair for %s', key);
-      return callback(new Error('Failed to validate key/value pair'));
-    }
+    this._validateKeyValuePair(key, value, function(valid) {
+        if (!valid) {
+            node._log.warn('failed to validate key/value pair for %s', key);
+            return callback(new Error('Failed to validate key/value pair'));
+        }
 
-    node._putValidatedKeyValue(key, value, callback);
-  });
+        node._putValidatedKeyValue(key, value, callback);
+    });
 };
+
+
 /**
  * This callback is called upon completion of {@link Node#put}
  * @callback Node~putCallback
