@@ -537,17 +537,14 @@ Node.prototype._expire = function () {
  * @param {Message} incomingMsg
  */
 Node.prototype._handlePing = function(incomingMsg) {
-  var contact = this._rpc._createContact(incomingMsg.params.contact);
-  var message = new Message({
-    id: incomingMsg.id,
-    result: { contact: this._self }
-  });
+    var contact = this._rpc._createContact(incomingMsg.params.contact);
+    var message = new Message({
+        id: incomingMsg.id,
+        result: { contact: this._self }
+    });
 
-  this._log.info(
-    'received PING from %s, sending PONG',
-    incomingMsg.params.contact.nodeID
-  );
-  this._rpc.send(contact, message);
+    //this._log.debug( 'received PING from %s, sending PONG', incomingMsg.params.contact.nodeID );
+    this._rpc.send(contact, message);
 };
 
 /**
