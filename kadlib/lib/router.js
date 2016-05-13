@@ -125,7 +125,7 @@ Router.prototype.maintainer = function () {
                 }
                 
                 for (var i = 0; i < removables.length; i++) {
-                    this._log.debug('remove inactive contact ' + removables[i]);
+                    self._log.debug('remove inactive contact ' + removables[i]);
                     delete self.inactiveContacts[removables[i]];
                 }
                 
