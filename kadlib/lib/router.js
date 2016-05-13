@@ -119,7 +119,7 @@ Router.prototype.maintainer = function () {
                     var contact = self.inactiveContacts[nodeId];
                     var addtime = contact.addtime || 0;
                     var diff = currtime - addtime;
-                    if (diff > 90000) { // remove after 90 seconds
+                    if (diff > 30000) { // remove after 30 seconds
                         removables.push(nodeId);
                     }
                 }
