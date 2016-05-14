@@ -824,7 +824,7 @@ Router.prototype.getNearestContacts = function(key, limit, nodeID) {
                 var isinactive = findInactive(contact);
                 
                 if (isinactive) {
-                    this._log.debug('inactive contact ' + contact.account + ' detected');   
+                    self._log.debug('inactive contact ' + contact.account + ' detected');   
                 }
                 
                 if (isContact && poolNotFull && notRequester && !isinactive) {
