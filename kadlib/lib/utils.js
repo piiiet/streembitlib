@@ -112,28 +112,29 @@ exports.compareKeys = function(b1, b2) {
  * @returns {Number}
  */
 exports.getBucketIndex = function(id1, id2) {
-  assert(exports.isValidKey(id1), 'Invalid key supplied');
-  assert(exports.isValidKey(id2), 'Invalid key supplied');
+    assert(exports.isValidKey(id1), 'Invalid key supplied');
+    assert(exports.isValidKey(id2), 'Invalid key supplied');
 
-  var distance = exports.getDistance(id1, id2);
-  var bucketNum = constants.B;
+    var distance = exports.getDistance(id1, id2);
+    var bucketNum = constants.B;
 
-  for (var i = 0; i < distance.length; i++) {
-    if (distance[i] === 0) {
-      bucketNum -= 8;
-      continue;
+    for (var i = 0; i < distance.length; i++) {
+        if (distance[i] === 0) {
+            bucketNum -= 8;
+            continue;
+        }
+
+        for (var j = 0; j < 8; j++) {
+            if (distance[i] & (0x80 >> j)) {
+                return --bucketNum;
+            } 
+            else {
+                bucketNum--;
+            }
+        }
     }
 
-    for (var j = 0; j < 8; j++) {
-      if (distance[i] & (0x80 >> j)) {
-        return --bucketNum;
-      } else {
-        bucketNum--;
-      }
-    }
-  }
-
-  return bucketNum;
+    return bucketNum;
 };
 
 /**

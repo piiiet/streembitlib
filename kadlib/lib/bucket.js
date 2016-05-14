@@ -41,11 +41,11 @@ var Contact = require('./contact');
 * @constructor
 */
 function Bucket() {
-  if (!(this instanceof Bucket)) {
-    return new Bucket();
-  }
+    if (!(this instanceof Bucket)) {
+        return new Bucket();
+    }
 
-  this._contacts = [];
+    this._contacts = [];
 }
 
 /**
@@ -53,7 +53,7 @@ function Bucket() {
  * @returns {Number}
  */
 Bucket.prototype.getSize = function() {
-  return this._contacts.length;
+    return this._contacts.length;
 };
 
 /**
@@ -61,7 +61,7 @@ Bucket.prototype.getSize = function() {
  * @returns {Array}
  */
 Bucket.prototype.getContactList = function() {
-  return _.clone(this._contacts);
+    return _.clone(this._contacts);
 };
 
 /**
@@ -70,10 +70,10 @@ Bucket.prototype.getContactList = function() {
  * @returns {Contact|null}
  */
 Bucket.prototype.getContact = function(index) {
-  assert(index >= 0, 'Contact index cannot be negative');
-  assert(index < constants.K, 'Contact index cannot be greater than K');
+    assert(index >= 0, 'Contact index cannot be negative');
+    assert(index < constants.K, 'Contact index cannot be greater than K');
 
-  return this._contacts[index] || null;
+    return this._contacts[index] || null;
 };
 
 /**
@@ -82,18 +82,18 @@ Bucket.prototype.getContact = function(index) {
  * @returns {Bucket}
  */
 Bucket.prototype.addContact = function(contact) {
-  assert(contact instanceof Contact, 'Invalid contact supplied');
-  assert(this.getSize() < constants.K, 'Bucket size cannot exceed K');
+    assert(contact instanceof Contact, 'Invalid contact supplied');
+    assert(this.getSize() < constants.K, 'Bucket size cannot exceed K');
 
-  if (!this.hasContact(contact.nodeID)) {
-    var index = _.sortedIndex(this._contacts, contact, function(contact) {
-      return contact.lastSeen;
-    });
+    if (!this.hasContact(contact.nodeID)) {
+        var index = _.sortedIndex(this._contacts, contact, function(contact) {
+            return contact.lastSeen;
+        });
 
-    this._contacts.splice(index, 0, contact);
-  }
+        this._contacts.splice(index, 0, contact);
+    }
 
-  return this;
+    return this;
 };
 
 /**
@@ -102,13 +102,13 @@ Bucket.prototype.addContact = function(contact) {
  * @returns {Bucket}
  */
 Bucket.prototype.removeContact = function(contact) {
-  var index = this.indexOf(contact);
+    var index = this.indexOf(contact);
 
-  if (index >= 0) {
-    this._contacts.splice(index, 1);
-  }
+    if (index >= 0) {
+        this._contacts.splice(index, 1);
+    }
 
-  return this;
+    return this;
 };
 
 /**
@@ -117,13 +117,13 @@ Bucket.prototype.removeContact = function(contact) {
  * @returns {Boolean}
  */
 Bucket.prototype.hasContact = function(nodeID) {
-  for (var i = 0; i < this.getSize(); i++) {
-    if (this._contacts[i].nodeID === nodeID) {
-      return true;
+    for (var i = 0; i < this.getSize(); i++) {
+        if (this._contacts[i].nodeID === nodeID) {
+            return true;
+        }
     }
-  }
 
-  return false;
+    return false;
 };
 
 /**
@@ -132,15 +132,15 @@ Bucket.prototype.hasContact = function(nodeID) {
  * @returns {Number}
  */
 Bucket.prototype.indexOf = function(contact) {
-  assert(contact instanceof Contact, 'Invalid contact supplied');
+    assert(contact instanceof Contact, 'Invalid contact supplied');
 
-  for (var i = 0; i < this.getSize(); i++) {
-    if (this.getContact(i).nodeID === contact.nodeID) {
-      return i;
+    for (var i = 0; i < this.getSize(); i++) {
+        if (this.getContact(i).nodeID === contact.nodeID) {
+            return i;
+        }
     }
-  }
 
-  return -1;
+    return -1;
 };
 
 module.exports = Bucket;

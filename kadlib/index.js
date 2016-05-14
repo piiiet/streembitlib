@@ -100,7 +100,7 @@ module.exports.create = function (options, callback) {
                         result.error = err;
                         return done(null, result);
                     }
-                        
+
                     var contact = peer._rpc._createContact(seed);
                     peer._router.findNode(contact.nodeID, function (err) {
                         result.error = err;
@@ -116,7 +116,7 @@ module.exports.create = function (options, callback) {
         },
         function (err, results) {
             if (err || results.length == 0) {
-                return callback("Failed to connect to any seed");
+                return callback("Failed to connect to any seed", peer);
             }
             
             var seed_success_count = 0;
@@ -128,10 +128,10 @@ module.exports.create = function (options, callback) {
             });
             
             if (!seed_success_count) {
-                return callback("Failed to connect to any seed");
-            }
+                err = "Failed to connect to any seed";
+            }            
 
-            callback(null, peer);
+            callback(err, peer);
         }
     );
 

@@ -146,7 +146,7 @@ RPC.prototype.send = function(contact, message, callback) {
     assert(message instanceof Message, 'Invalid message supplied');
 
     //if (Message.isRequest(message)) {
-    //    //this._log.info('sending %s message to %j', message.method, contact);
+    //    this._log.info('sending %s message to %j', message.method, contact);
     //} 
     //else {
     //    //this._log.info('replying to message to %s', message.id);
@@ -162,7 +162,8 @@ RPC.prototype.send = function(contact, message, callback) {
 
                 self._pendingCalls[message.id] = {
                     timestamp: Date.now(),
-                    callback: callback
+                    callback: callback,
+                    contact: contact
                 };
             } 
             //else {
@@ -187,39 +188,41 @@ RPC.prototype.send = function(contact, message, callback) {
  * @param {Buffer} buffer - Raw binary data to be processed by the RPC handler
  */
 RPC.prototype.receive = function(buffer, socket) {
-  var self = this, message, contact;
+    var self = this, message, contact;
 
-  function deserialize() {
-    message = Message.fromBuffer(buffer);
+    function deserialize() {
+        message = Message.fromBuffer(buffer);
 
-    self._trigger('after:deserialize');
+        self._trigger('after:deserialize');
 
-    if (Message.isRequest(message)) {
-      contact = self._createContact(message.params.contact);
-    } else {
-      contact = self._createContact(message.result.contact);
+        if (Message.isRequest(message)) {
+            contact = self._createContact(message.params.contact);
+        } 
+        else {
+            contact = self._createContact(message.result.contact);
+        }
+
+        //self._log.info('received valid message from %j', contact);
     }
 
-    //self._log.info('received valid message from %j', contact);
-  }
-
-  if (!buffer) {
-    self._log.warn('missing or empty reply from contact');
-    return self.emit('MESSAGE_DROP');
-  }
-
-  this._trigger('before:deserialize', [buffer], function() {
-    try {
-      deserialize();
-    } catch(err) {
-      self._log.error('failed to handle message, reason: %s', err.message);
-      return self.emit('MESSAGE_DROP', buffer);
+    if (!buffer) {
+        self._log.warn('missing or empty reply from contact');
+        return self.emit('MESSAGE_DROP');
     }
 
-    self._trigger('before:receive', [message, contact], function() {
-      self._execPendingCallback(message, contact, socket);
+    this._trigger('before:deserialize', [buffer], function() {
+        try {
+            deserialize();
+        } 
+        catch (err) {
+            self._log.error('failed to handle message, reason: %s', err.message);
+            return self.emit('MESSAGE_DROP', buffer);
+        }
+
+        self._trigger('before:receive', [message, contact], function() {
+            self._execPendingCallback(message, contact, socket);
+        });
     });
-  });
 };
 
 /**
@@ -228,7 +231,7 @@ RPC.prototype.receive = function(buffer, socket) {
  * @param {Function} handler - Event handler to register
  */
 RPC.prototype.before = function(event, handler) {
-  return this._register('before', event, handler);
+    return this._register('before', event, handler);
 };
 
 /**
@@ -237,7 +240,7 @@ RPC.prototype.before = function(event, handler) {
  * @param {Function} handler - Event handler to register
  */
 RPC.prototype.after = function(event, handler) {
-  return this._register('after', event, handler);
+    return this._register('after', event, handler);
 };
 
 /**
