@@ -21,7 +21,7 @@ Copyright (C) 2016 The Streembit software development team
 
 /**
  * Implementation is based on https://github.com/kadtools/kad 
- * Huge thank you for Gordon Hall https://github.com/gordonwritescode the author of kad library!
+ * Huge thanks to Gordon Hall https://github.com/gordonwritescode the author of kad library!
  * @module kad
  * @license GPL-3.0
  * @author Gordon Hall gordon@gordonwritescode.com
@@ -64,6 +64,15 @@ function Contact(options) {
  */
 Contact.prototype.seen = function() {
   this.lastSeen = Date.now();
+};
+
+/**
+ * Validator function for determining if contact is okay
+ * @abstract
+ * @returns {Boolean}
+ */
+Contact.prototype.valid = function () {
+    return true;
 };
 
 /**

@@ -21,7 +21,7 @@ Copyright (C) 2016 The Streembit software development team
 
 /**
  * Implementation is based on https://github.com/kadtools/kad 
- * Huge thank you for Gordon Hall https://github.com/gordonwritescode the author of kad library!
+ * Huge thanks to Gordon Hall https://github.com/gordonwritescode the author of kad library!
  * @module kad
  * @license GPL-3.0
  * @author Gordon Hall gordon@gordonwritescode.com
@@ -71,6 +71,54 @@ function RPC(contact, options) {
 
     this.open();
 }
+
+/**
+ * Triggered when the underlying transport is open
+ * @event RPC#ready
+ */
+
+/**
+ * Triggered when a contact is seen
+ * @event RPC#CONTACT_SEEN
+ * @param {Contact} contact - The contact that was just encountered
+ */
+
+/**
+ * Triggered when a RPC message times out
+ * @event RPC#TIMEOUT
+ * @param {Contact} contact - The contact that did not respond
+ * @param {Message} message - The message sent that timed out
+ */
+
+/**
+ * Triggered when a FIND_NODE RPC is received
+ * @event RPC#FIND_NODE
+ * @param {Message} message - The message received
+ */
+
+/**
+ * Triggered when a FIND_VALUE RPC message is received
+ * @event RPC#FIND_VALUE
+ * @param {Message} message - The message received
+ */
+
+/**
+ * Triggered when a PING RPC message is received
+ * @event RPC#PING
+ * @param {Message} message - The message received
+ */
+
+/**
+ * Triggered when a STORE RPC message is received
+ * @event RPC#STORE
+ * @param {Message} message - The message received
+ */
+
+/**
+ * Triggered when an invalid RPC message is dropped
+ * @event RPC#MESSAGE_DROP
+ * @param {Buffer} message - The raw invalid message received
+ */
 
 inherits(RPC, events.EventEmitter);
 
@@ -163,7 +211,8 @@ RPC.prototype.send = function(contact, message, callback) {
                 self._pendingCalls[message.id] = {
                     timestamp: Date.now(),
                     callback: callback,
-                    contact: contact
+                    contact: contact,
+                    message: message
                 };
             } 
             //else {
@@ -218,6 +267,8 @@ RPC.prototype.receive = function(buffer, socket) {
             self._log.error('failed to handle message, reason: %s', err.message);
             return self.emit('MESSAGE_DROP', buffer);
         }
+        
+        self.emit('CONTACT_SEEN', contact);
 
         self._trigger('before:receive', [message, contact], function() {
             self._execPendingCallback(message, contact, socket);
@@ -329,7 +380,6 @@ RPC.prototype._execPendingCallback = function(message, contact, socket) {
             constants.MESSAGE_TYPES.indexOf(message.method) !== -1,
             'Message references invalid method "' + message.method + '"'
         );
-        this.emit('CONTACT_SEEN', contact);
         this.emit(message.method, message, socket);
     } 
     else {
@@ -352,6 +402,7 @@ RPC.prototype._expireCalls = function() {
 
         if (timePassed > constants.T_RESPONSETIMEOUT) {
             this._log.warn('rpc call %s timed out', rpcID);
+            this.emit('TIMEOUT', pendingCall.contact, pendingCall.message);
             if (pendingCall.callback) {
                 pendingCall.callback(new Error('RPC with ID `' + rpcID + '` timed out'));
             }
@@ -365,7 +416,9 @@ RPC.prototype._expireCalls = function() {
  * @abstract
  */
 /* istanbul ignore next */
-RPC.prototype._close = function() {};
+RPC.prototype._close = function () {
+    throw new Error('Method not implemented');
+};
 
 /**
  * Unimplemented stub, called on send()
@@ -374,7 +427,10 @@ RPC.prototype._close = function() {};
  * @param {Contact} contact - Target peer to send data
  */
 /* istanbul ignore next */
-RPC.prototype._send = function() {};
+RPC.prototype._send = function () {
+    throw new Error('Method not implemented');
+};
+
 
 /**
  * Unimplemented stub, called on constructor

@@ -21,7 +21,7 @@ Copyright (C) 2016 The Streembit software development team
 
 /**
  * Implementation is based on https://github.com/kadtools/kad 
- * Huge thank you for Gordon Hall https://github.com/gordonwritescode the author of kad library!
+ * Huge thanks to Gordon Hall https://github.com/gordonwritescode the author of kad library!
  * @module kad
  * @license GPL-3.0
  * @author Gordon Hall gordon@gordonwritescode.com
@@ -277,7 +277,7 @@ Router.prototype.removeContact = function(contact) {
 Router.prototype.getContactByNodeID = function(nodeID) {
     var contact = this.getNearestContacts(nodeID, 1, this._self)[0];
 
-    return contact && contact.nodeID === nodeID ? contact : null;
+    return contact ? ((contact.nodeID && contact.nodeID === nodeID) ? contact : null) : null;
 };
 
 /**

@@ -22,7 +22,7 @@ Copyright (C) 2016 The Streembit software development team
 
 /**
  * Implementation is based on https://github.com/kadtools/kad 
- * Huge thank you for Gordon Hall https://github.com/gordonwritescode the author of kad library!
+ * Huge thanks to Gordon Hall https://github.com/gordonwritescode the author of kad library!
  * @module kad
  * @license GPL-3.0
  * @author Gordon Hall gordon@gordonwritescode.com
@@ -88,6 +88,11 @@ TCPTransport.prototype._send = function(data, contact) {
         this._queuedResponses[parsed.id].end(data);
         delete this._queuedResponses[parsed.id];
         return;
+    }
+    
+    if (!contact.valid()) {
+        this._log.warn('Refusing to send message to invalid contact');
+        return this.receive(null);
     }
 
     var sock = net.createConnection(contact.port, contact.address);
