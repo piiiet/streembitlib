@@ -22,7 +22,7 @@ Copyright (C) 2016 The Streembit software development team
 
 /**
  * Implementation is based on https://github.com/kadtools/kad 
- * Huge thank you for Gordon Hall https://github.com/gordonwritescode the author of kad library!
+ * Huge thanks to Gordon Hall https://github.com/gordonwritescode the author of kad library!
  * @module kad
  * @license GPL-3.0
  * @author Gordon Hall gordon@gordonwritescode.com
@@ -83,6 +83,15 @@ StreembitContact.prototype._createNodeID = function () {
     var nodeId = crypto.createHash('sha1').update(hashbase).digest('hex');
     return nodeId;
 };
+
+/**
+ * Ensures that the address and port are valid
+ * @returns {Boolean}
+ */
+StreembitContact.prototype.valid = function () {
+    return this.port > 0 && this.port < 65536;
+}
+
 
 /**
 * Generate a user-friendly string for the contact

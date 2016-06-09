@@ -21,7 +21,7 @@ Copyright (C) 2016 The Streembit software development team
 
 /**
  * Implementation is based on https://github.com/kadtools/kad 
- * Huge thank you for Gordon Hall https://github.com/gordonwritescode the author of kad library!
+ * Huge thanks to Gordon Hall https://github.com/gordonwritescode the author of kad library!
  * @module kad
  * @license GPL-3.0
  * @author Gordon Hall gordon@gordonwritescode.com
@@ -141,7 +141,9 @@ Node.DEFAULTS = {};
  * @param {Node~connectCallback} callback - Optional callback on connect
  * @returns {Node}
  */
-Node.prototype.connect = function(contact, callback) {
+Node.prototype.connect = function (contact, callback) {    
+    var self = this;
+
     var seed = this._rpc._createContact(contact);    
     if (!seed) {
         return callback("no seed created by RPC _createContact");
@@ -162,7 +164,7 @@ Node.prototype.connect = function(contact, callback) {
                 return done(err);
             }
 
-        done(null, contact);
+        done.call(self, null, contact);
     });
 
     return this;
@@ -215,7 +217,7 @@ Node.prototype.put = function(key, value, callback) {
             return callback(new Error('Failed to validate key/value pair'));
         }
 
-        node._putValidatedKeyValue(key, value, callback);
+        node._putValidatedKeyValue(Item(key, value, node._self.nodeID), callback);
     });
 };
 
@@ -284,52 +286,51 @@ Node.prototype.get_range = function (key, callback) {
 /**
  * Set a validated key/value pair in the DHT
  * @private
- * @param {String} key
- * @param {String} value
+ * @param {Item} item
  * @param {Function} callback
  */
-Node.prototype._putValidatedKeyValue = function(key, value, callback) {
-  var node = this;
-  var item = new Item(key, value, this._self.nodeID);
+Node.prototype._putValidatedKeyValue = function(item, callback) {
+    var node = this;
 
-  this._router.findNode(item.key, function(err, contacts) {
-    if (err) {
-      node._log.warn('failed to find nodes, reason: %s', err.message);
-      node._log.info('saving item to local storage');
-      return node._storage.put(key, JSON.stringify(item), callback);
-    }
+    this._router.findNode(item.key, function(err, contacts) {
+        if (err) {
+            node._log.warn('failed to find nodes, reason: %s', err.message);
+            node._log.info('saving item to local storage');
+            return node._storage.put(item.key, JSON.stringify(item), callback);
+        }
 
-    if (contacts.length === 0) {
-      node._log.warn('no contacts returned, checking local table...');
-      contacts = node._router.getNearestContacts(
-        key,
-        constants.K,
-        node._self.nodeID
-      );
-    }
+        if (contacts.length === 0) {
+            node._log.warn('no contacts returned, checking local table...');
+            contacts = node._router.getNearestContacts(
+                item.key,
+                constants.K,
+                node._self.nodeID
+            );
+        }
 
-    //node._log.debug('found %d contacts for STORE operation', contacts.length);
+        //node._log.debug('found %d contacts for STORE operation', contacts.length);
 
-    async.each(contacts, function(contact, done) {
-      var message = new Message({
-        method: 'STORE',
-        params: { item: item, contact: node._self }
-      });
-      //node._log.debug('sending STORE message to %j', contact);
-      node._rpc.send(contact, message, done);
-    }, function(err) {
-      if (contacts.length < constants.ALPHA) {
-        node._log.info('fewer than ALPHA contacts returned, storing locally');
-        return node._storage.put(key, JSON.stringify(item), callback);
-      }
+        async.each(
+            contacts, 
+            function (contact, done) {
+                var message = new Message({
+                    method: 'STORE',
+                    params: { item: item, contact: node._self }
+                });
 
-      if (err) {
-        return callback(err);
-      }
-
-      callback();
+                //node._log.debug('sending STORE message to %j', contact);
+                node._rpc.send(contact, message, done);
+            },             
+            function (err) {                
+                if (err) {
+                    node._log.error('Failed to store value at one or more nodes, reason:', err.message);
+                }
+                
+                // NB: Always store a local copy so we can republish later
+                node._storage.put(item.key, JSON.stringify(item), callback);       
+            }
+        );
     });
-  });
 };
 
 /**
@@ -409,10 +410,9 @@ Node.prototype._bindRPCMessageHandlers = function(options) {
     this._rpc.on('FIND_NODE', this._handleFindNode.bind(this));
     this._rpc.on('FIND_VALUE', this._handleFindValue.bind(this));
     this._rpc.on('CONTACT_SEEN', this._router.updateContact.bind(this._router));
+    this._rpc.on('TIMEOUT', this._router.removeContact.bind(this._router));
     
     this._rpc.on('FIND_RANGE', this._handleFindRange.bind(this));
-    
-    //this._rpc.on('MSGREQUEST', this.getStoredMessages.bind(this));
     
     if (options.onPeerMessage && (typeof options.onPeerMessage == "function")) {
         this._rpc.on('PEERMSG', options.onPeerMessage.bind(this));
@@ -436,45 +436,48 @@ Node.prototype._startReplicationInterval = function() {
  * Replicate local storage
  * @private
  */
-Node.prototype._replicate = function() {
-  var self = this;
-  var stream = this._storage.createReadStream();
-
-  this._log.info('starting local database replication');
-
-  stream.on('data', function(data) {
-    var item = null;
-
-    try {
-      item = JSON.parse(data.value);
-    } catch(err) {
-      return self._log.error('failed to parse value from %s', data.value);
-    }
-
-    // if we are not the publisher, then replicate every T_REPLICATE
-    if (item.publisher !== self._self.nodeID) {
-      self.put(data.key, item.value, function(err) {
-        if (err) {
-          self._log.error('failed to replicate item at key %s', data.key);
+Node.prototype._replicate = function () {
+    var self = this;
+    var stream = this._storage.createReadStream();
+    
+    this._log.info('starting local database replication');
+    
+    stream.on('data', function (data) {
+        var item = null;
+        var parsed = null;
+        
+        try {
+            parsed = JSON.parse(data.value);
+            item = Item(data.key, parsed.value, parsed.publisher, parsed.timestamp);
+        } 
+        catch (err) {
+            return self._log.error('failed to parse value from %s', data.value);
         }
-      });
-    // if we are the publisher, then only replicate every T_REPUBLISH
-    } else if (Date.now() <= item.timestamp + constants.T_REPUBLISH) {
-      self.put(data.key, item.value, function(err) {
-        if (err) {
-          self._log.error('failed to republish item at key %s', data.key);
+        
+        // if we are not the publisher, then replicate every T_REPLICATE
+        if (item.publisher !== self._self.nodeID) {
+            self._putValidatedKeyValue(item, function (err) {
+                if (err) {
+                    self._log.error('failed to replicate item at key %s', data.key);
+                }
+            });
+        // if we are the publisher, then only replicate every T_REPUBLISH
+        } else if (Date.now() <= item.timestamp + constants.T_REPUBLISH) {
+            self.put(item.key, item.value, function (err) {
+                if (err) {
+                    self._log.error('failed to republish item at key %s', data.key);
+                }
+            });
         }
-      });
-    }
-  });
-
-  stream.on('error', function(err) {
-    self._log.error('error while replicating: %s', err.message);
-  });
-
-  stream.on('end', function() {
-    self._log.info('database replication complete');
-  });
+    });
+    
+    stream.on('error', function (err) {
+        self._log.error('error while replicating: %s', err.message);
+    });
+    
+    stream.on('end', function () {
+        self._log.info('database replication complete');
+    });
 };
 
 /**
