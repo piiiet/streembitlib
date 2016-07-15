@@ -376,13 +376,16 @@ RPC.prototype._execPendingCallback = function(message, contact, socket) {
         delete this._pendingCalls[message.id];
     } 
     else if (Message.isRequest(message)) {
-        assert(
-            constants.MESSAGE_TYPES.indexOf(message.method) !== -1,
-            'Message references invalid method "' + message.method + '"'
-        );
-        this.emit(message.method, message, socket);
+        if (constants.MESSAGE_TYPES.indexOf(message.method) === -1) {
+            this.emit('MESSAGE_DROP', message.serialize());
+            return this._log.warn('message references unsupported method %s', message.method);
+        }
+        else {
+            this.emit(message.method, message, socket);
+        }
     } 
     else {
+        this.emit('MESSAGE_DROP', message.serialize());
         this._log.warn('dropping received late response to %s', message.id);
     }
 

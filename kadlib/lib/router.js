@@ -274,10 +274,19 @@ Router.prototype.removeContact = function(contact) {
  * @param {String} nodeID - The nodeID of the {@link Contact} to return
  * @returns {Contact|null}
  */
-Router.prototype.getContactByNodeID = function(nodeID) {
-    var contact = this.getNearestContacts(nodeID, 1, this._self)[0];
+Router.prototype.getContactByNodeID = function (nodeID) {
 
-    return contact ? ((contact.nodeID && contact.nodeID === nodeID) ? contact : null) : null;
+    for (var k in this._buckets) {
+        var contacts = this._buckets[k].getContactList();
+
+        for (var i = 0; i < contacts.length; i++) {
+            if (nodeID === contacts[i].nodeID) {
+                return contacts[i];
+            }
+        }
+    }
+
+    return null;
 };
 
 /**
@@ -318,14 +327,31 @@ Router.prototype._createLookupState = function(type, key) {
  * @param {Array} contacts - List of contacts to query
  * @param {Function} callback
  */
-Router.prototype._iterativeFind = function(state, contacts, callback) {
+Router.prototype._iterativeFind = function (state, contacts, callback) {
     var self = this;
+    var failures = 0;
 
-    //this._log.debug('starting contact iteration for key %s', state.key);
-    async.each(contacts, this._queryContact.bind(this, state), function() {
-        //self._log.debug('finished iteration, handling results');
+    function queryContact(contact, next) {
+        self._queryContact(state, contact, function (err) {
+            if (err) {
+                failures++;
+            }
+
+            next();
+        });
+    }
+
+    this._log.debug('starting contact iteration for key %s', state.key);
+    async.each(contacts, queryContact, function () {
+        self._log.debug('finished iteration, handling results');
+
+        if (failures === contacts.length) {
+            return callback(new Error('Lookup operation failed to return results'));
+        }
+
         self._handleQueryResults(state, callback);
     });
+
 };
 
 /**
@@ -350,7 +376,7 @@ Router.prototype._queryContact = function(state, contactInfo, callback) {
             self.registerInactive(contact);
             self._removeFromShortList(state, contact.nodeID);
             self.removeContact(contact);
-            return callback();
+            return callback(err);
         }
 
         self._handleFindResult(state, response, contact, callback);
