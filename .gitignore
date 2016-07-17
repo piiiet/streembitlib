@@ -60,3 +60,10 @@ build/win64
 /node
 /leveldown@1.4.4
 /dtrace-provider@0.6.0
+/account.js
+/appdefs.js
+/bootclient.js
+/config.json
+/peernet.js
+/streembit.js
+/typings

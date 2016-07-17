@@ -37,6 +37,7 @@ var clarinet = require('clarinet');
 var net = require('net');
 var StreembitContact = require('../contacts/streembit-contact');
 var RPC = require('../rpc');
+var Message = require('../message');
 
 /**
  * Transport adapter that sends and receives messages over a TCP socket
@@ -51,6 +52,7 @@ function TCPTransport(contact, options) {
 
     assert(contact instanceof StreembitContact, 'Invalid contact supplied');
     RPC.call(this, contact, options);
+    this.on('MESSAGE_DROP', this._handleDroppedMessage.bind(this));
 }
 
 inherits(TCPTransport, RPC);
@@ -185,7 +187,7 @@ TCPTransport.prototype._handleConnection = function (connection) {
                         self._queuedResponses[parsed.id] = connection;
                     }
                     
-                    self.receive(new Buffer(buffer));
+                    self.receive(new Buffer(buffer), connection);
                 }
             }
             catch (e) {
@@ -214,6 +216,31 @@ TCPTransport.prototype._handleConnection = function (connection) {
         buffer += data.toString('utf8');
         parser.write(data.toString('utf8'));
     });
+};
+
+
+TCPTransport.prototype._handleDroppedMessage = function (buffer) {
+    var message;
+
+    try {
+        message = Message.fromBuffer(buffer);
+    }
+    catch (err) {
+        this._log.error('_handleDroppedMessage Message error: ' + err.message);
+        return false;
+    }
+
+    try {
+        if (this._queuedResponses[message.id]) {
+            this._queuedResponses[message.id].end();
+            delete this._queuedResponses[message.id];
+        }
+    }
+    catch (err) {
+        this._log.error('_handleDroppedMessage _queuedResponses error: ' + err.message);
+    }
+
+    return true;
 };
 
 module.exports = TCPTransport;

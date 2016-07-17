@@ -42,14 +42,20 @@ exports.isValidKey = function(key) {
   return !!key && key.length === constants.B / 4;
 };
 
+
 /**
  * Create a valid ID from the given string
  * @param {String|Buffer} data - Data to SHA1 hash
  * @returns {String}
  */
-exports.createID = function(data) {
-  return crypto.createHash('sha1').update(data).digest('hex');
+exports.createID = function (data) {
+    if (exports.isValidKey(data)) {
+        return data;
+    }
+
+    return crypto.createHash('sha1').update(data).digest('hex');
 };
+
 
 /**
  * Convert a key to a buffer
