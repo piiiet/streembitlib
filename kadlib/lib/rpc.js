@@ -270,9 +270,19 @@ RPC.prototype.receive = function(buffer, socket) {
         
         self.emit('CONTACT_SEEN', contact);
 
-        self._trigger('before:receive', [message, contact], function() {
-            self._execPendingCallback(message, contact, socket);
-        });
+        try {
+            self._trigger('before:receive', [message, contact], function () {
+                try {
+                    self._execPendingCallback(message, contact, socket);
+                }
+                catch (exerr) {
+                    self._log.error('self._trigger(before:receive) call _execPendingCallback error: %s', exerr.message);
+                }
+            });
+        }
+        catch (err) {
+            self._log.error('self._trigger before:receive error: %s', err.message);
+        }
     });
 };
 
@@ -372,8 +382,19 @@ RPC.prototype._execPendingCallback = function(message, contact, socket) {
     //this._log.debug('checking pending rpc callback stack for %s', message.id);
 
     if (Message.isResponse(message) && pendingCall) {
-        pendingCall.callback(null, message);
-        delete this._pendingCalls[message.id];
+        try {
+            pendingCall.callback(null, message);
+        }
+        catch (err) {
+            this._log.error('_execPendingCallback pendingCall.callback error: %s', err.message);
+        }
+
+        try {
+            delete this._pendingCalls[message.id];
+        }
+        catch (err) {
+            this._log.error('_execPendingCallback delete pendingCall error: %s', err.message);
+        }        
     } 
     else if (Message.isRequest(message)) {
         if (constants.MESSAGE_TYPES.indexOf(message.method) === -1) {
@@ -385,6 +406,7 @@ RPC.prototype._execPendingCallback = function(message, contact, socket) {
         }
     } 
     else {
+        console.log("_execPendingCallback 4");
         this.emit('MESSAGE_DROP', message.serialize());
         this._log.warn('dropping received late response to %s', message.id);
     }

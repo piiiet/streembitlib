@@ -349,7 +349,12 @@ Router.prototype._iterativeFind = function (state, contacts, callback) {
             return callback(new Error('Lookup operation failed to return results'));
         }
 
-        self._handleQueryResults(state, callback);
+        try {
+            self._handleQueryResults(state, callback);
+        }
+        catch (err) {
+            self._log.error('call _handleQueryResults error: %s', err.message);
+        }
     });
 
 };
@@ -483,7 +488,7 @@ Router.prototype._handleQueryResults = function (state, callback) {
     var self = this;
     
     if (state.foundValue) {
-        //this._log.debug('a value was returned from query %s', state.key);
+        this._log.debug('a value was returned from query %s', state.key);
         return this._handleValueReturned(state, callback);
     }
     
@@ -491,7 +496,7 @@ Router.prototype._handleQueryResults = function (state, callback) {
     var shortlistFull = state.shortlist.length >= constants.K;
     
     if (closestNodeUnchanged || shortlistFull) {
-        //this._log.debug('shortlist is full or there are no known nodes closer to key %s', state.key);
+        this._log.debug('shortlist is full or there are no known nodes closer to key %s', state.key);
         return callback(null, 'NODE', state.shortlist);
     }
     
@@ -517,11 +522,17 @@ Router.prototype._handleQueryResults = function (state, callback) {
     });
 
     if (remainingContacts.length === 0) {
-        //this._log.debug('there are no more remaining contacts to query');
-        return callback(null, 'NODE', state.shortlist);
+        this._log.debug('there are no more remaining contacts to query');
+        try {
+            callback(null, 'NODE', state.shortlist);
+        }
+        catch (err) {
+            this._log.debug("_handleQueryResults callback(null, 'NODE', state.shortlist) error: %s", err.message);
+        }        
+        return;
     }
 
-    //this._log.debug('continuing with iterative query for key %s', state.key);
+    this._log.debug('continuing with iterative query for key %s', state.key);
     
     this._iterativeFind(
         state,
@@ -678,8 +689,14 @@ Router.prototype.findNode = function(nodeID, callback) {
             return callback(err);
         }
 
-        //self._log.debug('found %d nodes close to key %s', contacts.length, nodeID);
-        callback(null, contacts);
+        self._log.debug('found %d nodes close to key %s', contacts.length, nodeID);
+        try {
+            callback(null, contacts);
+        }
+        catch (err) {
+            this._log.debug("findNode callback error: %s", err.message);
+        }     
+        
     });
 };
 
@@ -699,7 +716,7 @@ Router.prototype.findNode = function(nodeID, callback) {
 Router.prototype.updateContact = function (contact, callback) {
     try {
         if (this._self.nodeID == contact.nodeID) {
-            this._log.warn('updateContact: contact cannot be its own');
+            //this._log.warn('updateContact: contact cannot be its own');
             return;
         }
         

@@ -139,47 +139,50 @@ module.exports.create = function (options, callback) {
 
 
 module.exports.find_contact = function (node, account, public_key, callback) {
-    
-    if (!node || !node._router || !node._router.getContactByNodeID) {
-        return callback("invalid node parameter");
-    }
-    if (!account) {
-        return callback("invalid account parameter");
-    }
-    if (!public_key) {
-        return callback("invalid public_key parameter");
-    }
-    if (!callback || typeof callback != "function") {
-        return callback("invalid callback parameter");
-    }
-    
-    var utils = require('./lib/utils');
-    var idbase = account + ':' + public_key;    
-    var nodeID = utils.createID(idbase);
-    
-    var contact = node._router.getContactByNodeID(nodeID);
-    if (contact) {
-        return callback(null, contact);
-    }
-
-    node._router.findNode(nodeID, function (err, contacts) {
-        if (err) {
-            return callback(err);
+    try{
+        if (!node || !node._router || !node._router.getContactByNodeID) {
+            return callback("invalid node parameter");
         }
-        
-        if (!contacts || !Array.isArray(contacts) || !contacts.length) {
-            return callback();
+        if (!account) {
+            return callback("invalid account parameter");
+        }
+        if (!public_key) {
+            return callback("invalid public_key parameter");
+        }
+        if (!callback || typeof callback != "function") {
+            return callback("invalid callback parameter");
+        }
+    
+        var utils = require('./lib/utils');
+        var idbase = account + ':' + public_key;    
+        var nodeID = utils.createID(idbase);
+    
+        var contact = node._router.getContactByNodeID(nodeID);
+        if (contact) {
+            return callback(null, contact);
         }
 
-        var contact;
-        for(var i=0; i < contacts.length; i++ ) {
-            if (contacts[i].nodeID == nodeID) {
-                contact = contacts[i];
-                break;
+        node._router.findNode(nodeID, function (err, contacts) {
+            if (err) {
+                return callback(err);
             }
-        }
         
-        callback(null, contact );
-    });
+            if (!contacts || !Array.isArray(contacts) || !contacts.length) {
+                return callback();
+            }
 
+            var contact;
+            for(var i=0; i < contacts.length; i++ ) {
+                if (contacts[i].nodeID == nodeID) {
+                    contact = contacts[i];
+                    break;
+                }
+            }
+        
+            callback(null, contact );
+        });
+    }
+    catch (err) {
+        callback(err.message ? err.message : err );
+    }
 }

@@ -187,7 +187,7 @@ TCPTransport.prototype._handleConnection = function (connection) {
                         self._queuedResponses[parsed.id] = connection;
                     }
                     
-                    self.receive(new Buffer(buffer));
+                    self.receive(new Buffer(buffer), connection);
                 }
             }
             catch (e) {
