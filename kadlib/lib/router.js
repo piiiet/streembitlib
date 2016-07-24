@@ -140,9 +140,11 @@ Router.prototype.maintainer = function () {
     );
 }
 
-Router.prototype.validate_contacts = function () {
+Router.prototype.validate_contacts = function (completeproc) {
 
     var self = this;
+
+    var success_count = 0;
     
     try {
         var pingProc = function (bucket, contacts) {
@@ -157,7 +159,10 @@ Router.prototype.validate_contacts = function () {
                                 self._log.debug('PING failed. maintain thread removes inactive contact %s from bucket', contact.account);
                                 bucket.removeContact(contact);
                             }
-                            
+                            else {
+                                success_count++;
+                            }
+
                             callback();
                         });
                     }
@@ -167,7 +172,11 @@ Router.prototype.validate_contacts = function () {
                 }, 
                 function (err) {
                     if (err) {
-                        self._log.error('validate_contacts PING error: %j', err);
+                        self._log.error('validate_contacts PING error: %j', err);                        
+                    }
+
+                    if (completeproc) {
+                        completeproc(err, success_count);
                     }
                 }
             );
@@ -184,6 +193,9 @@ Router.prototype.validate_contacts = function () {
     }
     catch (err) {
         self._log.error("validate_contacts error: %j", err);
+        if (completeproc) {
+            completeproc(err);
+        }
     }
 };
 
@@ -488,15 +500,15 @@ Router.prototype._handleQueryResults = function (state, callback) {
     var self = this;
     
     if (state.foundValue) {
-        this._log.debug('a value was returned from query %s', state.key);
-        return this._handleValueReturned(state, callback);
+        self._log.debug('a value was returned from query %s', state.key);
+        return self._handleValueReturned(state, callback);
     }
     
     var closestNodeUnchanged = state.closestNode === state.previousClosestNode;
     var shortlistFull = state.shortlist.length >= constants.K;
     
     if (closestNodeUnchanged || shortlistFull) {
-        this._log.debug('shortlist is full or there are no known nodes closer to key %s', state.key);
+        self._log.debug('shortlist is full or there are no known nodes closer to key %s', state.key);
         return callback(null, 'NODE', state.shortlist);
     }
     
@@ -522,12 +534,12 @@ Router.prototype._handleQueryResults = function (state, callback) {
     });
 
     if (remainingContacts.length === 0) {
-        this._log.debug('there are no more remaining contacts to query');
+        self._log.debug('there are no more remaining contacts to query');
         try {
             callback(null, 'NODE', state.shortlist);
         }
         catch (err) {
-            this._log.debug("_handleQueryResults callback(null, 'NODE', state.shortlist) error: %s", err.message);
+            self._log.debug("_handleQueryResults callback(null, 'NODE', state.shortlist) error: %s", err.message);
         }        
         return;
     }

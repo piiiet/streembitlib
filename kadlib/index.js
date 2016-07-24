@@ -139,7 +139,11 @@ module.exports.create = function (options, callback) {
 
 
 module.exports.find_contact = function (node, account, public_key, callback) {
-    try{
+    try {
+        if (!callback || typeof callback != "function") {
+            return;
+        }
+
         if (!node || !node._router || !node._router.getContactByNodeID) {
             return callback("invalid node parameter");
         }
@@ -148,9 +152,6 @@ module.exports.find_contact = function (node, account, public_key, callback) {
         }
         if (!public_key) {
             return callback("invalid public_key parameter");
-        }
-        if (!callback || typeof callback != "function") {
-            return callback("invalid callback parameter");
         }
     
         var utils = require('./lib/utils');
@@ -183,6 +184,29 @@ module.exports.find_contact = function (node, account, public_key, callback) {
         });
     }
     catch (err) {
-        callback(err.message ? err.message : err );
+        if (callback) {
+            callback(err.message ? err.message : err);
+        }
+    }
+}
+
+
+
+module.exports.validate_contacts = function (node, callback) {
+    try {
+        if (!callback || typeof callback != "function") {
+            return;
+        }
+
+        if (!node || !node._router || !node._router.validate_contacts) {
+            return callback("invalid node parameter");
+        }       
+
+        node._router.validate_contacts(callback);
+    }
+    catch (err) {
+        if (callback) {
+            callback(err.message ? err.message : err);
+        }
     }
 }

@@ -215,9 +215,8 @@ RPC.prototype.send = function(contact, message, callback) {
                     message: message
                 };
             } 
-            //else {
-            //    // self._log.debug('not waiting on callback for message %s', message.id);
-            //}
+
+            self._log.debug('message method: ' + message.method + ' RPC ID: ' + message.id);
 
             self._send(message.serialize(), contact);
             self._trigger('after:send');
@@ -251,7 +250,7 @@ RPC.prototype.receive = function(buffer, socket) {
             contact = self._createContact(message.result.contact);
         }
 
-        //self._log.info('received valid message from %j', contact);
+        self._log.debug('received valid message from %j', contact);
     }
 
     if (!buffer) {
@@ -390,6 +389,7 @@ RPC.prototype._execPendingCallback = function(message, contact, socket) {
         }
 
         try {
+            this._log.debug('reply received removing RPC ID: %s', message.id);
             delete this._pendingCalls[message.id];
         }
         catch (err) {
@@ -406,7 +406,6 @@ RPC.prototype._execPendingCallback = function(message, contact, socket) {
         }
     } 
     else {
-        console.log("_execPendingCallback 4");
         this.emit('MESSAGE_DROP', message.serialize());
         this._log.warn('dropping received late response to %s', message.id);
     }
