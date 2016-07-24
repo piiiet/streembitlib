@@ -250,7 +250,7 @@ RPC.prototype.receive = function(buffer, socket) {
             contact = self._createContact(message.result.contact);
         }
 
-        self._log.info('received valid message from %j', contact);
+        self._log.debug('received valid message from %j', contact);
     }
 
     if (!buffer) {
