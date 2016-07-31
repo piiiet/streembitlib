@@ -1,23 +1,23 @@
 ﻿/*
 
-This file is part of Streembit application. 
-Streembit is an open source project to create a real time communication system for humans and machines. 
+ This file is part of Streembit application.
+ Streembit is an open source project to create a real time communication system for humans and machines.
 
-Streembit is a free software: you can redistribute it and/or modify it under the terms of the GNU General Public License 
-as published by the Free Software Foundation, either version 3.0 of the License, or (at your option) any later version.
+ Streembit is a free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
+ as published by the Free Software Foundation, either version 3.0 of the License, or (at your option) any later version.
 
-Streembit is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of 
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+ Streembit is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with Streembit software.  
-If not, see http://www.gnu.org/licenses/.
- 
--------------------------------------------------------------------------------------------------------------------------
-Author: Tibor Zsolt Pardi 
-Copyright (C) 2016 The Streembit software development team
--------------------------------------------------------------------------------------------------------------------------
+ You should have received a copy of the GNU General Public License along with Streembit software.
+ If not, see http://www.gnu.org/licenses/.
 
-*/
+ -------------------------------------------------------------------------------------------------------------------------
+ Author: Tibor Zsolt Pardi
+ Copyright (C) 2016 The Streembit software development team
+ -------------------------------------------------------------------------------------------------------------------------
+
+ */
 
 var path = require('path');
 var fs = require('fs');
@@ -47,7 +47,7 @@ function log_error(err, param) {
         if (param) {
             var msg = err;
             if (typeof err == 'string') {
-                if(err.indexOf("%j") > -1 ) {
+                if (err.indexOf("%j") > -1) {
                     //  the Error object is not formated well from the util library
                     //  send only the message field if that is an Eror object
                     if (param.message && (typeof param == "Error" || typeof param == "error" || typeof param == "object" || typeof param == "Object")) {
@@ -60,9 +60,9 @@ function log_error(err, param) {
                     }
                 }
                 else {
-                    msg = util.format(err, param);                    
+                    msg = util.format(err, param);
                 }
-            }                
+            }
             else {
                 msg = err;
             }
@@ -72,7 +72,7 @@ function log_error(err, param) {
         else {
             logger.error(err);
             return err;
-        }       
+        }
     }
     catch (e) {
         if (err) {
@@ -84,10 +84,10 @@ function log_error(err, param) {
 
 function level_log(level, msg, val1, val2, val3, val4) {
     try {
-        
+
         if (!logger.log) {
             console.log(msg);
-            return;   
+            return;
         }
 
         if (msg) {
@@ -138,7 +138,7 @@ function log_warn(msg, val1, val2, val3, val4) {
 
 
 function config_log(loglevel, logpath, excpath, taskbar_infofn) {
-    var transports = [        
+    var transports = [
         new winston.transports.Console({
             level: loglevel,
             json: false,
@@ -154,8 +154,8 @@ function config_log(loglevel, logpath, excpath, taskbar_infofn) {
             colorize: false
         })
     ];
-    
-    
+
+
     logger = new (winston.Logger)({
         exitOnError: false,
         transports: transports,
@@ -178,31 +178,30 @@ function config_log(loglevel, logpath, excpath, taskbar_infofn) {
 }
 
 function init_log(loglevel, logdir, taskbar_infofn, callback) {
-    var logspath = logdir || path.join(process.cwd(), logsdir)
-    var logfilePath = path.join(logspath, 'streembit.log');
+    var logfile = path.join(logdir, 'streembit.log');
     // set the global logs path
-    global.logspath = logspath;
+    global.logspath = logdir;
 
-    console.log("logger.init logs directory: %s", logspath);
+    console.log("logger.init logs directory: %s", logdir);
 
     // create logs directory, if not exists
     try {
-        fs.existsSync(logspath) || fs.mkdirSync(logspath)
-    } catch (err) {
-        console.log("Error in creating logs directory: " + err.message ? err.message : err);
-        return callback(err.message);
+        fs.existsSync(logdir) || fs.mkdirSync(logdir);
+    } catch (e) {
+        console.log("Error in creating logs directory: " + e.message);
+        return callback(e.message);
     }
 
     // rename log file, if exists
     try {
-        fs.existsSync(logfilePath) && fs.renameSync(logfilePath, path.join(logspath, "/streembit_" + Date.now() + ".log"));
-    } catch (err) {
-        console.log("Error in renaming log file: " + err.message ? err.message : err);
-        return callback(err.message);
+        fs.existsSync(logfile) && fs.renameSync(logfile, path.join(logdir, "/streembit_" + Date.now() + ".log"));
+    } catch (e) {
+        console.log("Error in renaming log file: " + e.message);
+        return callback(e.message);
     }
 
-    config_log(loglevel || "debug", logfilePath, path.join(logspath, 'exception.log'), taskbar_infofn);
-    logger.info("logspath: " + logspath);
+    config_log(loglevel || "debug", logfile, path.join(logdir, 'exception.log'), taskbar_infofn);
+    logger.info("logspath: " + logdir);
 
     return callback();
 }
@@ -210,7 +209,7 @@ function init_log(loglevel, logdir, taskbar_infofn, callback) {
 function set_level(newlevel) {
     if (logger && logger.transports) {
         for (var i = 0; i < logger.transports.length; i++) {
-            logger.transports[i].level = newlevel; 
+            logger.transports[i].level = newlevel;
         }
     }
 }
