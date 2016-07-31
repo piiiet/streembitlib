@@ -178,80 +178,33 @@ function config_log(loglevel, logpath, excpath, taskbar_infofn) {
 }
 
 function init_log(loglevel, logdir, taskbar_infofn, callback) {
-    
-    var logspath = null;
-    if (logdir) {
-        logspath = logdir;
-    }
-    else {
-        var wdir = process.cwd();
-        logspath = path.join(wdir, logsdir);    
-    }
-
-    console.log("logger.init logs directory: %s", logspath);
+    var logspath = logdir || path.join(process.cwd(), logsdir)
+    var logfilePath = path.join(logspath, 'streembit.log');
     // set the global logs path
     global.logspath = logspath;
-    
-    var logfilePath = path.join(logspath, 'streembit.log');
-    var exceptionFileLog = path.join(logspath, 'exception.log');
-    
-    var level = loglevel || "debug";
-    
-    fs.open(logspath, 'r', function (err, fd) {
-        if (err && err.code == 'ENOENT') {
-            /* the directory doesn't exist */
-            console.log("Creating logs directory at " + logspath);
-            fs.mkdir(logspath, function (err) {
-                if (err) {
-                    // failed to create the log directory, most likely due to insufficient permission
-                    if (callback) {
-                        callback("Error in creating logs directory: " + err.message ? err.message : err);
-                    }
-                    else {
-                        console.log("Error in creating logs directory: " + err.message ? err.message : err);
-                    }
-                }
-                else {
-                    config_log(level, logfilePath, exceptionFileLog, taskbar_infofn);
 
-                    if (callback) {
-                        callback();
-                    }
-                    logger.info("logspath: " + logspath);
-                }
-            });
-        }
-        else {
-            console.log("logs directory " + logspath + " exists");
-            var tmpfilename = "/streembit_" + Date.now() + ".log";
-            var newfile = path.join(logspath, tmpfilename);
-            console.log("newfile: %s", newfile);
-            fs.rename(logfilePath, newfile, function (err) {
-                if (err) {
-                    if (err.code && err.code != "ENOENT") {
-                        if (callback) {
-                            callback("Error in creating renaming log file: " + err.message ? err.message : err);
-                        }
-                        else {
-                            return console.log("fs.rename error: %j", err);
-                        }
-                    }
-                    // continue if the streembit.log does not exists, that is not an error
-                }
+    console.log("logger.init logs directory: %s", logspath);
 
-                if (!err) {
-                    console.log("log file renamed to: %s", newfile);
-                }
+    // create logs directory, if not exists
+    try {
+        fs.existsSync(logspath) || fs.mkdirSync(logspath)
+    } catch (err) {
+        console.log("Error in creating logs directory: " + err.message ? err.message : err);
+        return callback(err.message);
+    }
 
-                config_log(level, logfilePath, exceptionFileLog, taskbar_infofn);
+    // rename log file, if exists
+    try {
+        fs.existsSync(logfilePath) && fs.renameSync(logfilePath, path.join(logspath, "/streembit_" + Date.now() + ".log"));
+    } catch (err) {
+        console.log("Error in renaming log file: " + err.message ? err.message : err);
+        return callback(err.message);
+    }
 
-                if (callback) {
-                    callback();
-                }
-                logger.info("logspath: " + logspath);
-            });
-        }
-    });
+    config_log(loglevel || "debug", logfilePath, path.join(logspath, 'exception.log'), taskbar_infofn);
+    logger.info("logspath: " + logspath);
+
+    return callback();
 }
 
 function set_level(newlevel) {
