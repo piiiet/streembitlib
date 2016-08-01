@@ -178,7 +178,9 @@ function config_log(loglevel, logpath, excpath, taskbar_infofn) {
 }
 
 function init_log(loglevel, logdir, taskbar_infofn, callback) {
+    // set logdir to "/logs", if not set
     logdir = logdir || path.join(path.dirname(require.main.filename), 'logs');
+    // set logfile
     var logfile = path.join(logdir, 'streembit.log');
     // set the global logs path
     global.logspath = logdir;
